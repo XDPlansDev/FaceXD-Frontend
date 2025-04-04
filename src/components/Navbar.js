@@ -1,21 +1,36 @@
-// Caminho: /components/Navbar.js
-
 import Link from "next/link";
+import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+
   return (
-    <nav className="bg-blue-600 p-4 text-white shadow-md fixed w-full top-0 z-10">
-      <div className="max-w-4xl mx-auto flex justify-between items-center">
-        <h1 className="text-lg font-bold">FaceXD</h1>
-        <div className="flex gap-4">
-          <Link href="/feed" className="hover:underline">
+    <AppBar position="fixed" sx={{ backgroundColor: "#1976d2" }}>
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+          FaceXD
+        </Typography>
+        <Box>
+          <Button color="inherit" component={Link} href="/feed">
             Feed
-          </Link>
-          <Link href="/profile/1" className="hover:underline">
-            Meu Perfil
-          </Link>
-        </div>
-      </div>
-    </nav>
+          </Button>
+          {user ? (
+            <>
+              <Button color="inherit" component={Link} href={`/profile/${user.id}`}>
+                Meu Perfil
+              </Button>
+              <Button color="inherit" onClick={logout}>
+                Sair
+              </Button>
+            </>
+          ) : (
+            <Button color="inherit" component={Link} href="/auth/login">
+              Entrar
+            </Button>
+          )}
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 }

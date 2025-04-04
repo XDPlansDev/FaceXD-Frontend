@@ -2,30 +2,42 @@
 
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { FaGithub, FaGoogle } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// 🛠️ Corrigindo os imports
+import { 
+  Container, Box, Paper, TextField, Button, Typography, 
+  Alert, Stack, Divider, FormControlLabel, Checkbox 
+} from "@mui/material";
+
+import { FaGithub, FaGoogle } from "react-icons/fa";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { login } = useAuth(); // Verifique se `useAuth` está funcionando
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
+
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        localStorage.setItem("token", data.token);
-        router.push("/feed");
+        if (login) {
+          login(data.token); // Atualiza o estado global
+          router.push("/feed");
+        } else {
+          console.error("AuthContext não está funcionando corretamente");
+        }
       } else {
         setError("Credenciais inválidas");
       }
@@ -35,53 +47,83 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-800 px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
-        <h2 className="text-2xl font-bold text-center text-gray-900">Entrar</h2>
-        <p className="text-gray-500 text-center mb-6">Conecte-se à sua conta</p>
-        
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        
-        <div className="flex space-x-4 mb-4">
-          <button className="flex items-center justify-center w-1/2 px-4 py-2 border rounded-lg hover:bg-gray-100">
-            <FaGithub className="mr-2" /> GitHub
-          </button>
-          <button className="flex items-center justify-center w-1/2 px-4 py-2 border rounded-lg hover:bg-gray-100">
-            <FaGoogle className="mr-2" /> Google
-          </button>
-        </div>
+    <Container maxWidth="sm">
+      <Box
+        component={Paper}
+        elevation={6}
+        p={4}
+        mt={8}
+        borderRadius={3}
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+      >
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          Entrar
+        </Typography>
+        <Typography color="text.secondary" mb={2}>
+          Conecte-se à sua conta
+        </Typography>
 
-        <div className="text-gray-400 text-center mb-4">Ou faça login com seu e-mail</div>
-        
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input
-            type="email"
-            placeholder="E-mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
-            required
-          />
-          <div className="flex items-center">
-            <input type="checkbox" id="remember" className="mr-2" />
-            <label htmlFor="remember" className="text-gray-600 text-sm">Lembrar de mim</label>
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700"
+        {error && (
+          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Stack direction="row" spacing={2} width="100%" mb={2}>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<FaGithub />}
+            sx={{ textTransform: "none" }}
           >
-            Entrar
-          </button>
-        </form>
-      </div>
-    </div>
+            GitHub
+          </Button>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<FaGoogle />}
+            sx={{ textTransform: "none" }}
+          >
+            Google
+          </Button>
+        </Stack>
+
+        <Divider sx={{ width: "100%", my: 2 }}>Ou com e-mail</Divider>
+
+        <Box component="form" onSubmit={handleLogin} width="100%">
+          <Stack spacing={2}>
+            <TextField
+              label="E-mail"
+              type="email"
+              fullWidth
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              label="Senha"
+              type="password"
+              fullWidth
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <FormControlLabel control={<Checkbox />} label="Lembrar de mim" />
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              sx={{ textTransform: "none", py: 1.5 }}
+            >
+              Entrar
+            </Button>
+          </Stack>
+        </Box>
+      </Box>
+    </Container>
   );
 }

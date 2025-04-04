@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 
+// Importando componentes do Material UI
+import { 
+  Container, Box, Paper, TextField, Button, Typography, 
+  Alert, Stack, Divider 
+} from "@mui/material";
+
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [sobrenome, setSobrenome] = useState("");
@@ -33,64 +39,102 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold text-center mb-4">Registrar</h2>
-      {error && <p className="text-red-500 text-center">{error}</p>}
-      <form onSubmit={handleRegister} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Sobrenome"
-          value={sobrenome}
-          onChange={(e) => setSobrenome(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Telefone (Opcional)"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="text"
-          placeholder="CEP"
-          value={cep}
-          onChange={(e) => setCep(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
-        >
-          Registrar
-        </button>
-      </form>
-    </div>
+    <Container maxWidth="sm">
+      <Box
+        component={Paper}
+        elevation={6}
+        p={4}
+        mt={8}
+        borderRadius={3}
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+      >
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          Criar Conta
+        </Typography>
+        <Typography color="text.secondary" mb={2}>
+          Preencha os campos abaixo para criar sua conta
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleRegister} width="100%">
+          <Stack spacing={2}>
+            <TextField
+              label="Nome"
+              fullWidth
+              required
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+            />
+            <TextField
+              label="Sobrenome"
+              fullWidth
+              required
+              value={sobrenome}
+              onChange={(e) => setSobrenome(e.target.value)}
+            />
+            <TextField
+              label="Telefone (Opcional)"
+              fullWidth
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+            />
+            <TextField
+              label="E-mail"
+              type="email"
+              fullWidth
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              label="CEP"
+              fullWidth
+              required
+              value={cep}
+              onChange={(e) => setCep(e.target.value)}
+            />
+            <TextField
+              label="Senha"
+              type="password"
+              fullWidth
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ textTransform: "none", py: 1.5 }}
+            >
+              Criar Conta
+            </Button>
+          </Stack>
+        </Box>
+
+        <Divider sx={{ width: "100%", my: 2 }} />
+
+        <Typography color="text.secondary">
+          Já tem cadastro?{" "}
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => router.push("/auth/login")}
+            sx={{ textTransform: "none", fontWeight: "bold" }}
+          >
+            Faça seu login
+          </Button>
+        </Typography>
+      </Box>
+    </Container>
   );
 }

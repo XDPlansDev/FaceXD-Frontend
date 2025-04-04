@@ -1,31 +1,42 @@
-// Caminho: /context/AuthContext.js
-
-import { createContext, useContext, useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const loggedUser = localStorage.getItem("user");
-    if (loggedUser) {
-      setUser(JSON.parse(loggedUser));
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchUserProfile(token);
     }
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
-    router.push("/feed");
+  const fetchUserProfile = async (token) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar perfil:", error);
+      setUser(null);
+    }
+  };
+
+  const login = (token) => {
+    localStorage.setItem("token", token);
+    fetchUserProfile(token);
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     setUser(null);
-    localStorage.removeItem("user");
-    router.push("/auth/login");
   };
 
   return (

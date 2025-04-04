@@ -1,32 +1,14 @@
+import Button from "@/components/Button";
 import Image from "next/image";
 import Link from "next/link";
 
-console.log("Tailwind está funcionando?");
-
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
+      
       {/* Navbar */}
-      <header className="bg-white shadow-md w-full py-4 px-6 flex justify-between items-center">
-        <Image
-          src="/logo.png" // Corrigido: certifique-se que a imagem está em "public/logo.png"
-          alt="Face XD Logo"
-          width={48}
-          height={48}
-          priority
-        />
-        <div className="flex gap-4">
-          <Link href="/auth/login" passHref>
-            <span className="px-6 py-2 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 cursor-pointer">
-              Login
-            </span>
-          </Link>
-          <Link href="/auth/register" passHref>
-            <span className="px-6 py-2 bg-green-500 text-white font-semibold rounded hover:bg-green-600 cursor-pointer">
-              Registrar
-            </span>
-          </Link>
-        </div>
+      <header className="bg-white shadow-md w-full py-4 px-6 flex justify-center items-center">
+        <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
       </header>
 
       {/* Conteúdo Principal */}
@@ -38,6 +20,17 @@ export default function HomePage() {
           Face XD é uma iniciativa inovadora criada por David Xavier para promover a educação e o auto desenvolvimento.
           Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
         </p>
+
+        {/* Botões Centralizados */}
+        <div className="mt-8 flex justify-center gap-6">
+          <Link href="/auth/login" passHref>
+            <Button>Login</Button>
+          </Link>
+
+          <Link href="/auth/register" passHref>
+            <Button>Registrar</Button>
+          </Link>
+        </div>
       </main>
     </div>
   );
