@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { Button } from "@/components/ui/button";
 
 export default function EditProfilePage() {
   const [name, setName] = useState("");
@@ -80,7 +79,12 @@ export default function EditProfilePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <Button className="w-full" onClick={handleSave}>Salvar</Button>
+            <button
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
+              onClick={handleSave}
+            >
+              Salvar
+            </button>
           </>
         )}
       </div>
