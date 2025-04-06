@@ -1,13 +1,17 @@
 // Caminho: /pages/profile/[username].js
 // --------------------------------------------------------------
 // Explicação Geral:
-// 1. Renomeamos o arquivo de rota dinâmica de [id].js para [username].js 
-//    para que a URL fique no formato: /profile/nomedeusuario
-// 2. No código abaixo, usamos router.query.username para capturar o "username"
+// 1. Agora utilizamos a variável de ambiente NEXT_PUBLIC_API_URL para evitar
+//    hardcode de URLs como "http://localhost:5000".
+// 2. O arquivo .env.local deve conter algo como:
+//       NEXT_PUBLIC_API_URL=https://facexd-backend.onrender.com
+//    ou a URL de seu backend atual.
+// 3. No código abaixo, usamos router.query.username para capturar o "username"
 //    da URL, e fazemos requisições ao backend usando esse valor.
-// 3. Ajustamos as funções fetchUserProfile e fetchUserPosts para buscar os 
-//    dados do usuário e posts pelo "username" (e não pelo ID).
-// 4. No backend, precisamos ter endpoints que aceitem o username como parâmetro 
+// 4. Ajustamos as funções fetchUserProfile e fetchUserPosts para buscar os 
+//    dados do usuário e posts pelo "username" (e não pelo ID), agora usando
+//    a variável de ambiente NEXT_PUBLIC_API_URL.
+// 5. No backend, precisamos ter endpoints que aceitem o username como parâmetro 
 //    (ex: GET /api/users/username/:username e GET /api/posts/username/:username).
 // --------------------------------------------------------------
 
@@ -37,7 +41,11 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 4. useEffect que roda sempre que o "username" for definido (ou mudar)
+  // 4. Captura a variável de ambiente com a URL base do backend
+  //    Definida no arquivo .env.local como NEXT_PUBLIC_API_URL
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  
+  // 5. useEffect que roda sempre que o "username" for definido (ou mudar)
   useEffect(() => {
     if (username) {
       fetchUserProfile();
@@ -45,12 +53,12 @@ export default function ProfilePage() {
     }
   }, [username]);
   
-  // 5. Função para buscar os dados do usuário no backend, usando o "username"
+  // 6. Função para buscar os dados do usuário no backend, usando o "username"
   const fetchUserProfile = async () => {
     try {
-      // Substitua a URL abaixo pela rota correta do seu backend,
-      // por exemplo: /api/users/username/:username
-      const response = await fetch(`http://localhost:5000/api/users/username/${username}`);
+      // Construímos a URL usando a variável de ambiente
+      // GET /api/users/username/:username
+      const response = await fetch(`${BASE_URL}/api/users/username/${username}`);
       if (response.ok) {
         const data = await response.json();
         setUser(data);
@@ -62,12 +70,12 @@ export default function ProfilePage() {
     }
   };
   
-  // 6. Função para buscar os posts do usuário no backend, usando o "username"
+  // 7. Função para buscar os posts do usuário no backend, usando o "username"
   const fetchUserPosts = async () => {
     try {
-      // Substitua a URL abaixo pela rota correta do seu backend,
-      // por exemplo: /api/posts/username/:username
-      const response = await fetch(`http://localhost:5000/api/posts/username/${username}`);
+      // Construímos a URL usando a variável de ambiente
+      // GET /api/posts/username/:username
+      const response = await fetch(`${BASE_URL}/api/posts/username/${username}`);
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
@@ -82,7 +90,7 @@ export default function ProfilePage() {
     }
   };
   
-  // 7. Enquanto estiver carregando, exibimos um indicador de progresso
+  // 8. Enquanto estiver carregando, exibimos um indicador de progresso
   if (loading) {
     return (
       <Container className="flex justify-center items-center min-h-screen">
@@ -91,7 +99,7 @@ export default function ProfilePage() {
     );
   }
   
-  // 8. Se já temos os dados do usuário e dos posts, renderizamos a página
+  // 9. Se já temos os dados do usuário e dos posts, renderizamos a página
   return (
     <Container maxWidth="md" className="mt-6">
       {/* Cartão com informações do usuário */}
