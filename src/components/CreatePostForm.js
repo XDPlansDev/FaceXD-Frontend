@@ -1,38 +1,68 @@
 // Caminho: /components/CreatePostForm.js
 
 import { useState } from "react";
-import Button from "@/components/Button";
-import Input from "@/components/Input";
+import {
+  Paper,
+  TextField,
+  Button,
+  Avatar,
+  Box,
+} from "@mui/material";
 
-export default function CreatePostForm({ onCreate }) {
-  const [title, setTitle] = useState("");
+export default function CreatePostForm({ onCreate, user }) {
   const [content, setContent] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (title.trim() && content.trim()) {
-      onCreate({ title, content });
-      setTitle("");
+    const trimmed = content.trim();
+    if (trimmed) {
+      onCreate({ title: "", content: trimmed });
       setContent("");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4 p-4 bg-white shadow rounded-lg">
-      <h2 className="text-lg font-bold mb-2">Criar Post</h2>
-      <Input
-        type="text"
-        placeholder="Título"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <textarea
-        placeholder="Escreva algo..."
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="w-full p-2 border rounded mt-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <Button type="submit" className="mt-2">Publicar</Button>
-    </form>
+    <Paper elevation={3} sx={{ p: 2, mb: 4, borderRadius: 3 }}>
+      <form onSubmit={handleSubmit}>
+        <Box display="flex" alignItems="flex-start">
+          {/* Avatar opcional */}
+          {user?.avatar && (
+            <Avatar
+              src={user.avatar}
+              alt={user.name}
+              sx={{ width: 48, height: 48, mr: 2 }}
+            />
+          )}
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            maxRows={6}
+            variant="outlined"
+            placeholder="O que está pensando hoje?"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            sx={{
+              flex: 1,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                backgroundColor: "#f9f9f9",
+              },
+            }}
+          />
+        </Box>
+        <Box display="flex" justifyContent="flex-end" mt={1}>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={!content.trim()}
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Publicar
+          </Button>
+        </Box>
+      </form>
+    </Paper>
   );
 }
