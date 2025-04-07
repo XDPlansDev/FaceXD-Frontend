@@ -10,6 +10,7 @@ import {
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [sobrenome, setSobrenome] = useState("");
+  const [username, setUsername] = useState(""); // Novo campo
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [cep, setCep] = useState("");
@@ -24,7 +25,7 @@ export default function RegisterPage() {
       const response = await fetch("https://facexd-backend.onrender.com/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, sobrenome, telefone, email, cep, password }),
+        body: JSON.stringify({ nome, sobrenome, username, telefone, email, cep, password }),
       });
 
       if (response.ok) {
@@ -78,6 +79,14 @@ export default function RegisterPage() {
               required
               value={sobrenome}
               onChange={(e) => setSobrenome(e.target.value)}
+            />
+            <TextField
+              label="Username"
+              fullWidth
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              helperText="Escolha um nome único para o seu perfil"
             />
             <TextField
               label="Telefone (Opcional)"
