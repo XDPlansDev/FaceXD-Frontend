@@ -1,4 +1,4 @@
-// 📄 Caminho: /pages/profile/[username].js
+// 📁 /pages/profile/[username].js
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -12,6 +12,7 @@ import {
   IconButton,
   Divider,
   Box,
+  Paper,
 } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -30,7 +31,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!router.isReady || !username) return;
 
-    // Pega o ID do usuário logado do localStorage
     const storedUserId = localStorage.getItem("userId");
     if (storedUserId) {
       setUserIdLogado(storedUserId.toString());
@@ -47,6 +47,7 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
         setUser(data);
+        console.log("📦 Dados do usuário carregados:", data);
       } else {
         console.error("❌ Erro ao carregar perfil");
       }
@@ -61,6 +62,7 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
+        console.log("📄 Posts carregados:", data);
       } else {
         console.error("❌ Erro ao carregar posts do usuário");
       }
@@ -84,14 +86,10 @@ export default function ProfilePage() {
 
       if (response.ok) {
         const updatedPost = await response.json();
-        console.log("✅ Curtida atualizada com sucesso:", updatedPost);
+        console.log("✅ Curtida atualizada:", updatedPost);
 
-        // Atualiza o estado com o post curtido/desc
-        setPosts((prevPosts) =>
-          prevPosts.map((p) => {
-            console.log("🌀 Comparando post:", p._id, "==", updatedPost._id);
-            return p._id === updatedPost._id ? updatedPost : p;
-          })
+        setPosts((prev) =>
+          prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
         );
       } else {
         console.error("❌ Erro ao curtir/descurtir post");
@@ -135,46 +133,78 @@ export default function ProfilePage() {
 
   return (
     <Container maxWidth="md" className="mt-6">
+      {/* 🔷 Cabeçalho do perfil */}
       <Card className="p-4 mb-6">
-        <CardContent className="flex items-center">
-          <Avatar
-            src={avatarUrl}
-            alt={`${user?.nome || "Usuário"} ${user?.sobrenome || ""}`}
-            sx={{ width: 80, height: 80, marginRight: 2 }}
-          />
-          <div>
-            <Typography variant="h5" className="font-bold">
+        <CardContent>
+          <Box display="flex" flexDirection="column" alignItems="center">
+            {/* Avatar */}
+            <Avatar
+              src={avatarUrl}
+              alt={`${user?.nome || "Usuário"} ${user?.sobrenome || ""}`}
+              sx={{ width: 100, height: 100, mb: 2 }}
+            />
+
+            {/* Blocos de Seguidores e Favoritos lado a lado */}
+            <Box display="flex" gap={2} mb={2}>
+              <Paper elevation={2} sx={{ px: 3, py: 1.5, textAlign: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  👥 Seguidores
+                </Typography>
+                <Typography variant="h6">
+                  {user?.followers?.length || 0}
+                </Typography>
+              </Paper>
+              <Paper elevation={2} sx={{ px: 3, py: 1.5, textAlign: "center" }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  ⭐ Favoritos
+                </Typography>
+                <Typography variant="h6">
+                  {posts.filter((post) =>
+                    post.likes?.some((id) =>
+                      id?.toString?.() === userIdLogado
+                    )
+                  ).length}
+                </Typography>
+              </Paper>
+            </Box>
+
+            {/* Nome + dados */}
+            <Typography variant="h6" fontWeight="bold">
               {user?.nome && user?.sobrenome
                 ? `${user.nome} ${user.sobrenome}`
                 : "Usuário sem nome"}
             </Typography>
 
             {user?.sexo && (
-              <Typography variant="body2" className="text-gray-600">
+              <Typography variant="body2" color="text.secondary">
                 Sexo: {user.sexo}
               </Typography>
             )}
 
             {user?.dataNascimento && (
-              <Typography variant="body2" className="text-gray-600">
+              <Typography variant="body2" color="text.secondary">
                 Nascimento: {formatarData(user.dataNascimento)}
               </Typography>
             )}
 
-            <Typography variant="body2" className="text-gray-600 mt-1">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1, textAlign: "center", maxWidth: "80%" }}
+            >
               {user?.bio || "Este usuário ainda não escreveu uma bio."}
             </Typography>
-          </div>
+          </Box>
         </CardContent>
       </Card>
 
+      {/* 🔷 Lista de posts */}
       <Typography variant="h6" className="font-bold mb-4">
         Posts
       </Typography>
 
       {posts.length > 0 ? (
         posts.map((post) => {
-          // 🧠 Verifica se o usuário logado já curtiu o post
           const jaCurtiu = post.likes?.some((id) => {
             const idStr =
               typeof id === "object" && id._id ? id._id.toString() : id?.toString();
@@ -205,11 +235,11 @@ export default function ProfilePage() {
                         <FavoriteBorderIcon sx={{ color: "#999" }} />
                       )}
                     </IconButton>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant="body2" color="text.secondary">
                       {post.likes?.length || 0} curtidas
                     </Typography>
                   </Box>
-                  <Typography variant="caption" color="textSecondary">
+                  <Typography variant="caption" color="text.secondary">
                     {new Date(post.createdAt).toLocaleDateString("pt-BR")}
                   </Typography>
                 </Box>
