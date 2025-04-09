@@ -3,23 +3,32 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Container, Box, Paper, TextField, Button,
-  Typography, Alert, Stack
-} from "@mui/material";
 import Link from "next/link";
+import {
+  Form,
+  Input,
+  Button,
+  Typography,
+  Alert,
+  Spin,
+  Card,
+  Space
+} from "antd";
+
+const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError(null);
+    setLoading(true);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
@@ -30,78 +39,72 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-        login(data.token); // Armazena token no contexto
+        login(data.token);
         console.log(`✅ Login com @${data.user.username}`);
         router.push("/feed");
       } else {
         setError("Usuário ou senha inválidos.");
+        console.warn("⚠️ Credenciais inválidas");
       }
     } catch (err) {
       setError("Erro ao conectar com o servidor.");
+      console.error("❌ Erro ao conectar:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        component={Paper}
-        elevation={6}
-        p={4}
-        mt={8}
-        borderRadius={3}
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-      >
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Entrar
-        </Typography>
+    <div style={{ maxWidth: 400, margin: "auto", padding: "2rem" }}>
+      <Card>
+        <Space direction="vertical" style={{ width: "100%" }} size="large">
+          <Title level={3} style={{ textAlign: "center" }}>
+            Entrar
+          </Title>
+          <Text type="secondary" style={{ textAlign: "center", display: "block" }}>
+            Faça login com e-mail e senha.
+          </Text>
 
-        <Typography color="text.secondary" mb={3}>
-          Faça login com e-mail e senha.
-        </Typography>
+          {error && <Alert type="error" message={error} showIcon />}
 
-        {error && (
-          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+          <Form layout="vertical" onFinish={handleLogin}>
+            <Form.Item label="E-mail ou Username" required>
+              <Input
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                disabled={loading}
+              />
+            </Form.Item>
+            <Form.Item label="Senha" required>
+              <Input.Password
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                loading={loading}
+                disabled={!identifier || !password}
+              >
+                Entrar
+              </Button>
+            </Form.Item>
+          </Form>
 
-        <Box component="form" onSubmit={handleLogin} width="100%">
-          <Stack spacing={2}>
-            <TextField
-              label="E-mail ou Username"
-              fullWidth
-              required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-            />
-            <TextField
-              label="Senha"
-              type="password"
-              fullWidth
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{ textTransform: "none", py: 1.5 }}
-            >
-              Entrar
-            </Button>
-          </Stack>
-        </Box>
-
-        <Typography mt={3} color="text.secondary">
-          Não tem uma conta?{" "}
-          <Link href="/auth/register" passHref>
-            <Button variant="text" size="small">Registrar</Button>
-          </Link>
-        </Typography>
-      </Box>
-    </Container>
+          <Text type="secondary" style={{ textAlign: "center" }}>
+            Não tem uma conta?{' '}
+            <Link href="/auth/register" passHref>
+              <Button type="link" size="small">
+                Registrar
+              </Button>
+            </Link>
+          </Text>
+        </Space>
+      </Card>
+    </div>
   );
 }
