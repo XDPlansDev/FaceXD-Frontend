@@ -1,15 +1,16 @@
+// 📄 Caminho: /pages/auth/register.js
+
 import { useState } from "react";
 import { useRouter } from "next/router";
 import {
   Container, Box, Paper, TextField, Button, Typography,
   Alert, Stack, Divider, MenuItem, FormControl, InputLabel, Select,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
+  CircularProgress
 } from "@mui/material";
-import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import app from "@/utils/firebase";
 
 export default function RegisterPage() {
+  // ✔️ Estados do formulário
   const [nome, setNome] = useState("");
   const [sobrenome, setSobrenome] = useState("");
   const [username, setUsername] = useState("");
@@ -20,70 +21,46 @@ export default function RegisterPage() {
   const [sexo, setSexo] = useState("");
   const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loading, setLoading] = useState(false); // ⏳ Loader
 
   const router = useRouter();
-  const auth = getAuth(app);
-  const db = getFirestore(app);
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true); // Inicia o loader
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email,
-        nome,
-        sobrenome,
-        username,
-        cep,
-        sexo,
-        dataNascimento,
-        createdAt: new Date().toISOString(),
-        followers: [],
-        following: [],
-        favoritos: []
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          sobrenome,
+          username,
+          email,
+          cep,
+          password,
+          dataNascimento,
+          sexo,
+        }),
       });
 
-      setOpenDialog(true);
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("✅ Cadastro realizado:", data);
+        // ✉️ Armazena o token e redireciona para o feed
+        localStorage.setItem("token", data.token);
+        setOpenDialog(true);
+      } else {
+        setError(data.message || "Erro ao registrar usuário.");
+      }
     } catch (err) {
-      console.error("Erro ao registrar:", err);
-      setError("Erro ao registrar. Verifique os dados e tente novamente.");
-    }
-  };
-
-  const handleGoogleRegister = async () => {
-    setError(null);
-    const provider = new GoogleAuthProvider();
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Verifica se já existe no Firestore
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        nome: user.displayName?.split(" ")[0] || "",
-        sobrenome: user.displayName?.split(" ").slice(1).join(" ") || "",
-        username: user.email.split("@")[0],
-        cep: "",
-        sexo: "",
-        dataNascimento: "",
-        createdAt: new Date().toISOString(),
-        followers: [],
-        following: [],
-        favoritos: []
-      }, { merge: true });
-
-      router.push("/feed");
-    } catch (err) {
-      console.error("Erro no login com Google:", err);
-      setError("Erro ao registrar com Google.");
+      console.error("❌ Erro ao conectar com o servidor:", err);
+      setError("Erro ao conectar com o servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -193,25 +170,16 @@ export default function RegisterPage() {
               color="primary"
               fullWidth
               sx={{ textTransform: "none", py: 1.5 }}
+              disabled={loading} // Evita múltiplos envios
             >
-              Criar Conta
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Criar Conta"}
             </Button>
           </Stack>
         </Box>
 
-        <Divider sx={{ width: "100%", my: 2 }}>ou</Divider>
+        <Divider sx={{ width: "100%", my: 2 }} />
 
-        <Button
-          variant="outlined"
-          color="secondary"
-          fullWidth
-          onClick={handleGoogleRegister}
-          sx={{ textTransform: "none", py: 1.3 }}
-        >
-          Continuar com Google
-        </Button>
-
-        <Typography color="text.secondary" mt={2}>
+        <Typography color="text.secondary">
           Já tem cadastro?{" "}
           <Button
             variant="text"

@@ -1,13 +1,6 @@
 // 📄 Caminho: context/AuthContext.js
 
 import { createContext, useContext, useState, useEffect } from "react";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-import app from "@/utils/firebase"; // Firebase inicializado
 
 const AuthContext = createContext();
 
@@ -15,49 +8,65 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
+  // ⚡️ Verifica o token salvo ao iniciar a aplicacao
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Carrega dados adicionais do Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          ...userData,
-        });
-      } else {
-        setUser(null);
-      }
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Token inválido");
+          return res.json();
+        })
+        .then((data) => {
+          console.log("🔄 Usuário restaurado da sessão:", data);
+          setUser(data);
+        })
+        .catch((err) => {
+          console.warn("❌ Erro ao restaurar sessão:", err.message);
+          localStorage.removeItem("token");
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
-    });
-
-    return () => unsubscribe(); // Cleanup listener
+    }
   }, []);
 
-  const login = (sessionData) => {
-    // Recebe os dados do Firebase + Firestore após login
-    setUser(sessionData);
-  };
-
-  const logout = () => {
-    signOut(auth)
-      .then(() => {
-        setUser(null);
+  // ✉️ Login com token JWT
+  const login = (token) => {
+    localStorage.setItem("token", token);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Erro ao buscar dados do usuário");
+        return res.json();
+      })
+      .then((data) => {
+        console.log("🚀 Login realizado:", data);
+        setUser(data);
       })
       .catch((err) => {
-        console.error("Erro ao sair:", err.message);
+        console.error("❌ Falha no login:", err.message);
+        localStorage.removeItem("token");
       });
+  };
+
+  // ❌ Logout e limpeza da sessão
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    console.log("📄 Sessão encerrada.");
   };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>
       {loading ? (
-        <div style={{ padding: "2rem", textAlign: "center" }}>Carregando...</div>
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          Carregando...
+        </div>
       ) : (
         children
       )}

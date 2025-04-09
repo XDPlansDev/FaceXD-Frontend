@@ -31,7 +31,7 @@ export default function ProfilePage() {
   const [userIdLogado, setUserIdLogado] = useState(null);
   const [tab, setTab] = useState(0);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false); // Novo estado para seguir
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -40,18 +40,16 @@ export default function ProfilePage() {
 
     const storedUserId = localStorage.getItem("userId");
     if (storedUserId) {
-      setUserIdLogado(storedUserId.toString());
+      setUserIdLogado(storedUserId);
       console.log("👤 ID do usuário logado:", storedUserId);
     }
 
     fetchUserProfile();
     fetchUserPosts();
 
-    // Define aba via URL
     if (tabParam === "posts") setTab(1);
   }, [router.isReady, username, tabParam]);
 
-  // 🔄 Buscar dados do usuário
   const fetchUserProfile = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/users/username/${username}`);
@@ -62,7 +60,11 @@ export default function ProfilePage() {
 
         const idLogado = localStorage.getItem("userId");
         setIsOwnProfile(data._id === idLogado);
-        setIsFollowing(data.followers?.includes(idLogado));
+
+        const followersAsString = data.followers?.map((id) => id?.toString?.()) || [];
+        const seguindo = followersAsString.includes(idLogado);
+        console.log("👥 Já está seguindo?", seguindo);
+        setIsFollowing(seguindo);
       } else {
         console.error("❌ Erro ao carregar perfil");
       }
@@ -71,7 +73,6 @@ export default function ProfilePage() {
     }
   };
 
-  // 🔄 Buscar posts do usuário
   const fetchUserPosts = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/posts/username/${username}`);
@@ -89,7 +90,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ❤️ Curtir ou descurtir post
   const handleLike = async (postId) => {
     try {
       const token = localStorage.getItem("token");
@@ -104,10 +104,7 @@ export default function ProfilePage() {
       if (res.ok) {
         const updated = await res.json();
         console.log("✅ Curtida atualizada:", updated);
-
-        setPosts((prev) =>
-          prev.map((p) => (p._id === updated._id ? updated : p))
-        );
+        setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
       } else {
         console.error("❌ Erro ao curtir/descurtir");
       }
@@ -116,11 +113,9 @@ export default function ProfilePage() {
     }
   };
 
-  // ➕/➖ Seguir ou deixar de seguir
   const handleFollowToggle = async () => {
     try {
       const token = localStorage.getItem("token");
-  
       const res = await fetch(`${BASE_URL}/api/users/follow/${user._id}`, {
         method: "PUT",
         headers: {
@@ -128,12 +123,13 @@ export default function ProfilePage() {
           "Content-Type": "application/json",
         },
       });
-  
+
       if (res.ok) {
         const updatedUser = await res.json();
+        const updatedFollowers = updatedUser.followers?.map((id) => id?.toString?.()) || [];
+        setUser((prev) => ({ ...prev, followers: updatedFollowers }));
+        setIsFollowing(updatedFollowers.includes(userIdLogado));
         console.log("🔁 Status de seguir atualizado:", updatedUser);
-        setUser((prev) => ({ ...prev, followers: updatedUser.followers }));
-        setIsFollowing(updatedUser.followers.includes(user._id));
       } else {
         console.error("❌ Erro ao seguir/deixar de seguir");
       }
@@ -141,9 +137,7 @@ export default function ProfilePage() {
       console.error("❌ Erro no follow:", err);
     }
   };
-  
 
-  // 🎂 Calcular idade a partir da data
   const calcularIdade = (dataNasc) => {
     if (!dataNasc) return null;
     const nasc = new Date(dataNasc);
@@ -154,7 +148,6 @@ export default function ProfilePage() {
     return idade;
   };
 
-  // 🗓️ Formatar data de nascimento
   const formatarData = (dataISO) => {
     if (!dataISO) return "Data não informada";
     const data = new Date(dataISO);
@@ -175,16 +168,11 @@ export default function ProfilePage() {
 
   return (
     <Container maxWidth="md" className="mt-6">
-      {/* 📌 Cabeçalho do perfil */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
         <Card className="p-4 mb-4">
           <CardContent>
             <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
-              <Avatar
-                src={user?.avatar || "/profile-default.svg"}
-                alt="Avatar"
-                sx={{ width: 80, height: 80 }}
-              />
+              <Avatar src={user?.avatar || "/profile-default.svg"} alt="Avatar" sx={{ width: 80, height: 80 }} />
               <Box>
                 <Typography variant="h6" fontWeight="bold">
                   {user?.nome} {user?.sobrenome}
@@ -192,19 +180,13 @@ export default function ProfilePage() {
                 <Typography variant="body2" color="text.secondary">
                   @{user?.username}
                 </Typography>
-                {user?.sexo && (
-                  <Typography variant="body2" color="text.secondary">
-                    Sexo: {user.sexo}
-                  </Typography>
-                )}
+                {user?.sexo && <Typography variant="body2" color="text.secondary">Sexo: {user.sexo}</Typography>}
                 {user?.dataNascimento && (
                   <Typography variant="body2" color="text.secondary">
                     Nascimento: {formatarData(user.dataNascimento)}
                   </Typography>
                 )}
               </Box>
-
-              {/* 📊 Blocos: seguidores e favoritos */}
               <Box display="flex" gap={2} ml="auto">
                 <Paper elevation={2} sx={{ px: 2, py: 1, textAlign: "center" }}>
                   <Typography variant="subtitle2">👥 Seguidores</Typography>
@@ -213,23 +195,19 @@ export default function ProfilePage() {
                 <Paper elevation={2} sx={{ px: 2, py: 1, textAlign: "center" }}>
                   <Typography variant="subtitle2">⭐ Favoritos</Typography>
                   <Typography variant="body1">
-                    {posts.filter((p) =>
-                      p.likes?.some((id) => id?.toString?.() === userIdLogado)
-                    ).length}
+                    {posts.filter((p) => p.likes?.some((id) => id?.toString?.() === userIdLogado)).length}
                   </Typography>
                 </Paper>
               </Box>
             </Box>
-
-            {/* 🔘 Botões de ação */}
             {!isOwnProfile && (
               <Box mt={3} display="flex" gap={2}>
                 <Button
                   variant={isFollowing ? "outlined" : "contained"}
-                  color="primary"
+                  color={isFollowing ? "secondary" : "primary"}
                   onClick={handleFollowToggle}
                 >
-                  {isFollowing ? "Deixar de seguir" : "Seguir"}
+                  {isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
                 <Button variant="outlined">Mensagem</Button>
               </Box>
@@ -238,7 +216,6 @@ export default function ProfilePage() {
         </Card>
       </motion.div>
 
-      {/* 🧭 Navegação de abas */}
       <Tabs
         value={tab}
         onChange={(e, newValue) => {
@@ -252,7 +229,6 @@ export default function ProfilePage() {
         <Tab label="Posts" />
       </Tabs>
 
-      {/* Conteúdo das abas */}
       {tab === 0 && (
         <Box mt={3}>
           <Typography variant="body1">
@@ -267,12 +243,7 @@ export default function ProfilePage() {
             posts.map((post) => {
               const jaCurtiu = post.likes?.some((id) => id?.toString?.() === userIdLogado);
               return (
-                <motion.div
-                  key={post._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <motion.div key={post._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                   <Card className="mb-4 shadow-sm rounded-xl">
                     <CardContent>
                       <Typography variant="body1" className="mb-2">
@@ -281,18 +252,8 @@ export default function ProfilePage() {
                       <Divider className="my-2" />
                       <Box display="flex" alignItems="center" justifyContent="space-between">
                         <Box display="flex" alignItems="center">
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              console.log("🔘 Curtindo post:", post._id);
-                              handleLike(post._id);
-                            }}
-                          >
-                            {jaCurtiu ? (
-                              <FavoriteIcon sx={{ color: "#e53935" }} />
-                            ) : (
-                              <FavoriteBorderIcon sx={{ color: "#999" }} />
-                            )}
+                          <IconButton size="small" onClick={() => handleLike(post._id)}>
+                            {jaCurtiu ? <FavoriteIcon sx={{ color: "#e53935" }} /> : <FavoriteBorderIcon sx={{ color: "#999" }} />}
                           </IconButton>
                           <Typography variant="body2" color="text.secondary">
                             {post.likes?.length || 0} curtidas
