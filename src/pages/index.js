@@ -1,15 +1,27 @@
 // 📄 /pages/index.js
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button, Container, Typography, Box } from "@mui/material";
+import { useAuth } from "@/context/AuthContext"; // ✅ IMPORTANTE
 
 export default function HomePage() {
+  const { user } = useAuth(); // ✅ PEGANDO O USER DO CONTEXTO
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token);
+    }
+  }, []);
+
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundColor: "#f3f4f6", // bg-gray-100
+        backgroundColor: "#f3f4f6",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -41,18 +53,35 @@ export default function HomePage() {
           Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
         </Typography>
 
-        {/* Botões */}
+        {/* Botões dinâmicos */}
         <Box sx={{ mt: 5, display: "flex", justifyContent: "center", gap: 2 }}>
-          <Link href="/auth/login" passHref>
-            <Button variant="contained" color="primary" size="large">
-              Login
-            </Button>
-          </Link>
-          <Link href="/auth/register" passHref>
-            <Button variant="outlined" color="primary" size="large">
-              Registrar
-            </Button>
-          </Link>
+          {isLoggedIn && user ? (
+            <>
+              <Link href="/feed" passHref>
+                <Button variant="contained" color="primary" size="large">
+                  Feed
+                </Button>
+              </Link>
+              <Link href={`/profile/${user.username}`} passHref>
+                <Button variant="outlined" color="primary" size="large">
+                  Meu Perfil
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login" passHref>
+                <Button variant="contained" color="primary" size="large">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/auth/register" passHref>
+                <Button variant="outlined" color="primary" size="large">
+                  Registrar
+                </Button>
+              </Link>
+            </>
+          )}
         </Box>
       </Container>
     </Box>
