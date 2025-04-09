@@ -1,25 +1,12 @@
-// 📁 Caminho: /pages/profile/[username].js
+// 📄 Caminho: /pages/profile/[username].js
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import {
-  Avatar,
-  Card,
-  CardContent,
-  Typography,
-  Container,
-  CircularProgress,
-  IconButton,
-  Divider,
-  Box,
-  Paper,
-  Tabs,
-  Tab,
-  Button,
-} from "@mui/material";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { Card, Avatar, Divider, Typography, Tabs, Button, Spin, message, Row, Col, Space } from "antd";
+import { HeartFilled, HeartOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
+
+const { TabPane } = Tabs;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -29,7 +16,6 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userIdLogado, setUserIdLogado] = useState(null);
-  const [tab, setTab] = useState(0);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
@@ -46,9 +32,7 @@ export default function ProfilePage() {
 
     fetchUserProfile();
     fetchUserPosts();
-
-    if (tabParam === "posts") setTab(1);
-  }, [router.isReady, username, tabParam]);
+  }, [router.isReady, username]);
 
   const fetchUserProfile = async () => {
     try {
@@ -56,35 +40,22 @@ export default function ProfilePage() {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
-        console.log("📦 Perfil carregado:", data);
-
         const idLogado = localStorage.getItem("userId");
         setIsOwnProfile(data._id === idLogado);
-
-        const followersAsString = data.followers?.map((id) => id?.toString?.()) || [];
-        const seguindo = followersAsString.includes(idLogado);
-        console.log("👥 Já está seguindo?", seguindo);
-        setIsFollowing(seguindo);
-      } else {
-        console.error("❌ Erro ao carregar perfil");
+        setIsFollowing(data.followers?.includes(idLogado));
       }
-    } catch (error) {
-      console.error("❌ Erro na requisição de perfil", error);
+    } catch (err) {
+      console.error("Erro ao buscar perfil:", err);
     }
   };
 
   const fetchUserPosts = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/posts/username/${username}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data);
-        console.log("📄 Posts carregados:", data);
-      } else {
-        console.error("❌ Erro ao carregar posts");
-      }
-    } catch (error) {
-      console.error("❌ Erro ao buscar posts", error);
+      const data = await res.json();
+      setPosts(data);
+    } catch (err) {
+      console.error("Erro ao buscar posts:", err);
     } finally {
       setLoading(false);
     }
@@ -103,13 +74,10 @@ export default function ProfilePage() {
 
       if (res.ok) {
         const updated = await res.json();
-        console.log("✅ Curtida atualizada:", updated);
         setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
-      } else {
-        console.error("❌ Erro ao curtir/descurtir");
       }
     } catch (err) {
-      console.error("❌ Erro ao curtir/descurtir:", err);
+      console.error("Erro ao curtir post:", err);
     }
   };
 
@@ -123,18 +91,12 @@ export default function ProfilePage() {
           "Content-Type": "application/json",
         },
       });
-
-      if (res.ok) {
-        const updatedUser = await res.json();
-        const updatedFollowers = updatedUser.followers?.map((id) => id?.toString?.()) || [];
-        setUser((prev) => ({ ...prev, followers: updatedFollowers }));
-        setIsFollowing(updatedFollowers.includes(userIdLogado));
-        console.log("🔁 Status de seguir atualizado:", updatedUser);
-      } else {
-        console.error("❌ Erro ao seguir/deixar de seguir");
-      }
+      const updatedUser = await res.json();
+      const updatedFollowers = updatedUser.followers?.map((id) => id?.toString?.()) || [];
+      setUser((prev) => ({ ...prev, followers: updatedFollowers }));
+      setIsFollowing(updatedFollowers.includes(userIdLogado));
     } catch (err) {
-      console.error("❌ Erro no follow:", err);
+      message.error("Erro ao seguir usuário.");
     }
   };
 
@@ -151,130 +113,89 @@ export default function ProfilePage() {
   const formatarData = (dataISO) => {
     if (!dataISO) return "Data não informada";
     const data = new Date(dataISO);
-    const dia = String(data.getDate()).padStart(2, "0");
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const ano = data.getFullYear();
-    const idade = calcularIdade(dataISO);
-    return `${dia}/${mes}/${ano} (${idade} anos)`;
+    return `${data.toLocaleDateString("pt-BR")} (${calcularIdade(dataISO)} anos)`;
   };
 
   if (loading) {
-    return (
-      <Container className="flex justify-center items-center min-h-screen">
-        <CircularProgress />
-      </Container>
-    );
+    return <Spin fullscreen tip="Carregando perfil..." />;
   }
 
   return (
-    <Container maxWidth="md" className="mt-6">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-        <Card className="p-4 mb-4">
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
-              <Avatar src={user?.avatar || "/profile-default.svg"} alt="Avatar" sx={{ width: 80, height: 80 }} />
-              <Box>
-                <Typography variant="h6" fontWeight="bold">
-                  {user?.nome} {user?.sobrenome}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  @{user?.username}
-                </Typography>
-                {user?.sexo && <Typography variant="body2" color="text.secondary">Sexo: {user.sexo}</Typography>}
-                {user?.dataNascimento && (
-                  <Typography variant="body2" color="text.secondary">
-                    Nascimento: {formatarData(user.dataNascimento)}
-                  </Typography>
-                )}
-              </Box>
-              <Box display="flex" gap={2} ml="auto">
-                <Paper elevation={2} sx={{ px: 2, py: 1, textAlign: "center" }}>
-                  <Typography variant="subtitle2">👥 Seguidores</Typography>
-                  <Typography variant="body1">{user?.followers?.length || 0}</Typography>
-                </Paper>
-                <Paper elevation={2} sx={{ px: 2, py: 1, textAlign: "center" }}>
-                  <Typography variant="subtitle2">⭐ Favoritos</Typography>
-                  <Typography variant="body1">
-                    {posts.filter((p) => p.likes?.some((id) => id?.toString?.() === userIdLogado)).length}
-                  </Typography>
-                </Paper>
-              </Box>
-            </Box>
-            {!isOwnProfile && (
-              <Box mt={3} display="flex" gap={2}>
-                <Button
-                  variant={isFollowing ? "outlined" : "contained"}
-                  color={isFollowing ? "secondary" : "primary"}
-                  onClick={handleFollowToggle}
-                >
-                  {isFollowing ? "Seguindo" : "Seguir"}
-                </Button>
-                <Button variant="outlined">Mensagem</Button>
-              </Box>
-            )}
-          </CardContent>
+    <div style={{ maxWidth: 900, margin: "auto", padding: 24 }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        <Card>
+          <Row gutter={[24, 16]} align="middle">
+            <Col>
+              <Avatar size={80} src={user?.avatar || "/profile-default.svg"} />
+            </Col>
+            <Col flex="auto">
+              <Typography.Title level={4}>{user?.nome} {user?.sobrenome}</Typography.Title>
+              <Typography.Text type="secondary">@{user?.username}</Typography.Text>
+              <br />
+              {user?.sexo && <Typography.Text>Sexo: {user.sexo}</Typography.Text>}<br />
+              {user?.dataNascimento && <Typography.Text>Nascimento: {formatarData(user.dataNascimento)}</Typography.Text>}
+            </Col>
+            <Col>
+              <Space direction="vertical">
+                <div>
+                  <strong>👥 Seguidores:</strong> {user?.followers?.length || 0}
+                </div>
+                <div>
+                  <strong>⭐ Favoritos:</strong> {posts.filter((p) => p.likes?.includes(userIdLogado)).length}
+                </div>
+              </Space>
+              {!isOwnProfile && (
+                <div style={{ marginTop: 12 }}>
+                  <Button
+                    type={isFollowing ? "default" : "primary"}
+                    onClick={handleFollowToggle}
+                  >
+                    {isFollowing ? "Seguindo" : "Seguir"}
+                  </Button>
+                </div>
+              )}
+            </Col>
+          </Row>
         </Card>
       </motion.div>
 
-      <Tabs
-        value={tab}
-        onChange={(e, newValue) => {
-          setTab(newValue);
-          const query = { ...router.query, tab: newValue === 1 ? "posts" : "sobre" };
-          router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
-        }}
-        centered
-      >
-        <Tab label="Sobre" />
-        <Tab label="Posts" />
-      </Tabs>
-
-      {tab === 0 && (
-        <Box mt={3}>
-          <Typography variant="body1">
+      <Tabs defaultActiveKey={tabParam === "posts" ? "2" : "1"} style={{ marginTop: 24 }}>
+        <TabPane tab="Sobre" key="1">
+          <Typography.Paragraph>
             {user?.bio || "Este usuário ainda não escreveu uma bio."}
-          </Typography>
-        </Box>
-      )}
-
-      {tab === 1 && (
-        <Box mt={3}>
+          </Typography.Paragraph>
+        </TabPane>
+        <TabPane tab="Posts" key="2">
           {posts.length > 0 ? (
             posts.map((post) => {
-              const jaCurtiu = post.likes?.some((id) => id?.toString?.() === userIdLogado);
+              const jaCurtiu = post.likes?.includes(userIdLogado);
               return (
-                <motion.div key={post._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                  <Card className="mb-4 shadow-sm rounded-xl">
-                    <CardContent>
-                      <Typography variant="body1" className="mb-2">
-                        {post.content}
-                      </Typography>
-                      <Divider className="my-2" />
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Box display="flex" alignItems="center">
-                          <IconButton size="small" onClick={() => handleLike(post._id)}>
-                            {jaCurtiu ? <FavoriteIcon sx={{ color: "#e53935" }} /> : <FavoriteBorderIcon sx={{ color: "#999" }} />}
-                          </IconButton>
-                          <Typography variant="body2" color="text.secondary">
-                            {post.likes?.length || 0} curtidas
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(post.createdAt).toLocaleDateString("pt-BR")}
-                        </Typography>
-                      </Box>
-                    </CardContent>
+                <motion.div key={post._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                  <Card style={{ marginBottom: 16 }}>
+                    <Typography.Text>{post.content}</Typography.Text>
+                    <Divider />
+                    <Row justify="space-between">
+                      <Space>
+                        <Button
+                          type="text"
+                          icon={jaCurtiu ? <HeartFilled style={{ color: "red" }} /> : <HeartOutlined />}
+                          onClick={() => handleLike(post._id)}
+                        />
+                        <Typography.Text>{post.likes?.length || 0} curtidas</Typography.Text>
+                      </Space>
+                      <Typography.Text type="secondary">
+                        {new Date(post.createdAt).toLocaleDateString("pt-BR")}
+                      </Typography.Text>
+                    </Row>
                   </Card>
                 </motion.div>
               );
             })
           ) : (
-            <Typography variant="body2" color="text.secondary">
-              Este usuário ainda não publicou nenhum post.
-            </Typography>
+            <Typography.Text type="secondary">Este usuário ainda não publicou nenhum post.</Typography.Text>
           )}
-        </Box>
-      )}
-    </Container>
+        </TabPane>
+      </Tabs>
+    </div>
   );
 }

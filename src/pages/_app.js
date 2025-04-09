@@ -1,20 +1,32 @@
 // 📄 Caminho: /pages/_app.js
 
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { Theme } from "@radix-ui/themes";
+import "@radix-ui/themes/styles.css";
+
 import Navbar from "@/components/Navbar";
-import OneSignalInitializer from "@/components/OneSignalInitializer"; // ✅ Importando o OneSignal
+import OneSignalInitializer from "@/components/OneSignalInitializer"; // ✅ Inicializa o OneSignal
 import "../styles/globals.css";
-import { CssBaseline } from "@mui/material";
 
 export default function MyApp({ Component, pageProps }) {
   return (
-    <AuthProvider>
-      <CssBaseline /> {/* 📌 Reset global de estilos (MUI) */}
-      <OneSignalInitializer /> {/* ✅ Inicializa OneSignal para notificações push */}
-      <Navbar /> {/* 📌 Barra de navegação visível em todas as páginas */}
-      <div className="mt-16"> {/* 🧱 Garante espaçamento abaixo da Navbar */}
-        <Component {...pageProps} />
-      </div>
-    </AuthProvider>
+    <ThemeProvider>
+      {/* 🎨 Aplica o tema baseado no contexto (light/dark) */}
+      <Theme
+        appearance="inherit"
+        accentColor="violet"
+        grayColor="mauve"
+        radius="large"
+      >
+        <AuthProvider>
+          <OneSignalInitializer /> {/* ✅ Notificações push */}
+          <Navbar /> {/* 📌 Barra de navegação global */}
+          <div className="mt-16"> {/* 🧱 Espaço abaixo da Navbar */}
+            <Component {...pageProps} />
+          </div>
+        </AuthProvider>
+      </Theme>
+    </ThemeProvider>
   );
 }

@@ -1,13 +1,16 @@
-// 📄 /pages/index.js
+// 📄 /pages/index.js (com Ant Design)
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Button, Container, Typography, Box } from "@mui/material";
-import { useAuth } from "@/context/AuthContext"; // ✅ IMPORTANTE
+import { Button, Typography, Layout, Row, Col, Space } from "antd";
+import { useAuth } from "@/context/AuthContext";
+import { SmileOutlined, ArrowRightOutlined } from "@ant-design/icons";
+
+const { Content, Header } = Layout;
 
 export default function HomePage() {
-  const { user } = useAuth(); // ✅ PEGANDO O USER DO CONTEXTO
+  const { user } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -18,72 +21,54 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundColor: "#f3f4f6",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        px: 2,
-      }}
-    >
-      {/* Navbar */}
-      <Box
-        sx={{
-          width: "100%",
-          backgroundColor: "#fff",
-          boxShadow: 2,
-          py: 2,
-          px: 3,
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
+    <Layout style={{ minHeight: "100vh" }}>
+      {/* Cabeçalho */}
+      <Header style={{ backgroundColor: "#fff", boxShadow: "0 2px 8px #f0f1f2", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
-      </Box>
+      </Header>
 
       {/* Conteúdo principal */}
-      <Container maxWidth="md" sx={{ textAlign: "center", mt: 8 }}>
-        <Typography variant="h3" fontWeight="bold" color="text.primary">
-          Face XD: A Rede Social Exclusiva para São Paulo
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
-          Face XD é uma iniciativa inovadora criada por David Xavier para promover a educação e o auto desenvolvimento.
-          Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
-        </Typography>
+      <Content style={{ padding: "50px 20px", backgroundColor: "#f9fafb" }}>
+        <Row justify="center">
+          <Col xs={24} sm={20} md={16} lg={14} style={{ textAlign: "center" }}>
+            <Typography.Title level={1} style={{ fontWeight: 700, marginBottom: 16 }}>
+              Face XD: A Rede Social Exclusiva para São Paulo
+            </Typography.Title>
+            <Typography.Paragraph type="secondary" style={{ fontSize: 18 }}>
+              Face XD é uma iniciativa inovadora criada por <strong>David Xavier</strong> para promover a educação e o auto desenvolvimento.<br />
+              Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
+            </Typography.Paragraph>
 
-        {/* Botões dinâmicos */}
-        <Box sx={{ mt: 5, display: "flex", justifyContent: "center", gap: 2 }}>
-          {isLoggedIn && user ? (
-            <>
-              <Link href="/feed" passHref>
-                <Button variant="contained" color="primary" size="large">
-                  Feed
-                </Button>
-              </Link>
-              <Link href={`/profile/${user.username}`} passHref>
-                <Button variant="outlined" color="primary" size="large">
-                  Meu Perfil
-                </Button>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/auth/login" passHref>
-                <Button variant="contained" color="primary" size="large">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/auth/register" passHref>
-                <Button variant="outlined" color="primary" size="large">
-                  Registrar
-                </Button>
-              </Link>
-            </>
-          )}
-        </Box>
-      </Container>
-    </Box>
+            <Space size="large" style={{ marginTop: 40 }}>
+              {isLoggedIn && user ? (
+                <>
+                  <Link href="/feed" passHref>
+                    <Button type="primary" size="large" icon={<ArrowRightOutlined />}>
+                      Ir para o Feed
+                    </Button>
+                  </Link>
+                  <Link href={`/profile/${user.username}`} passHref>
+                    <Button size="large">Meu Perfil</Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login" passHref>
+                    <Button type="primary" size="large">
+                      Entrar
+                    </Button>
+                  </Link>
+                  <Link href="/auth/register" passHref>
+                    <Button size="large" type="default" icon={<SmileOutlined />}>
+                      Registrar
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </Space>
+          </Col>
+        </Row>
+      </Content>
+    </Layout>
   );
 }
