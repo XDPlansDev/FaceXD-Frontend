@@ -5,6 +5,9 @@ import {
   Alert, Stack, Divider, MenuItem, FormControl, InputLabel, Select,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from "@mui/material";
+import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import app from "@/utils/firebase";
 
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
@@ -19,35 +22,68 @@ export default function RegisterPage() {
   const [openDialog, setOpenDialog] = useState(false);
 
   const router = useRouter();
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome,
-          sobrenome,
-          username,
-          email,
-          cep,
-          password,
-          dataNascimento,
-          sexo,
-        }),
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email,
+        nome,
+        sobrenome,
+        username,
+        cep,
+        sexo,
+        dataNascimento,
+        createdAt: new Date().toISOString(),
+        followers: [],
+        following: [],
+        favoritos: []
       });
 
-      if (response.ok) {
-        setOpenDialog(true); // abrir o dialog de sucesso
-      } else {
-        const data = await response.json();
-        setError(data.message || "Erro ao registrar usuário.");
-      }
+      setOpenDialog(true);
     } catch (err) {
-      setError("Erro ao conectar com o servidor.");
+      console.error("Erro ao registrar:", err);
+      setError("Erro ao registrar. Verifique os dados e tente novamente.");
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setError(null);
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Verifica se já existe no Firestore
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        nome: user.displayName?.split(" ")[0] || "",
+        sobrenome: user.displayName?.split(" ").slice(1).join(" ") || "",
+        username: user.email.split("@")[0],
+        cep: "",
+        sexo: "",
+        dataNascimento: "",
+        createdAt: new Date().toISOString(),
+        followers: [],
+        following: [],
+        favoritos: []
+      }, { merge: true });
+
+      router.push("/feed");
+    } catch (err) {
+      console.error("Erro no login com Google:", err);
+      setError("Erro ao registrar com Google.");
     }
   };
 
@@ -163,8 +199,19 @@ export default function RegisterPage() {
           </Stack>
         </Box>
 
-        <Divider sx={{ width: "100%", my: 2 }} />
-        <Typography color="text.secondary">
+        <Divider sx={{ width: "100%", my: 2 }}>ou</Divider>
+
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={handleGoogleRegister}
+          sx={{ textTransform: "none", py: 1.3 }}
+        >
+          Continuar com Google
+        </Button>
+
+        <Typography color="text.secondary" mt={2}>
           Já tem cadastro?{" "}
           <Button
             variant="text"
