@@ -1,37 +1,60 @@
-import Button from "@/components/Button";
+// 📄 /pages/index.js
+
 import Image from "next/image";
 import Link from "next/link";
+import { Button, Container, Typography, Box } from "@mui/material";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-      
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundColor: "#f3f4f6", // bg-gray-100
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        px: 2,
+      }}
+    >
       {/* Navbar */}
-      <header className="bg-white shadow-md w-full py-4 px-6 flex justify-center items-center">
+      <Box
+        sx={{
+          width: "100%",
+          backgroundColor: "#fff",
+          boxShadow: 2,
+          py: 2,
+          px: 3,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
-      </header>
+      </Box>
 
-      {/* Conteúdo Principal */}
-      <main className="text-center mt-16 max-w-2xl">
-        <h1 className="text-4xl font-bold text-gray-800">
+      {/* Conteúdo principal */}
+      <Container maxWidth="md" sx={{ textAlign: "center", mt: 8 }}>
+        <Typography variant="h3" fontWeight="bold" color="text.primary">
           Face XD: A Rede Social Exclusiva para São Paulo
-        </h1>
-        <p className="text-lg mt-4 text-gray-600">
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
           Face XD é uma iniciativa inovadora criada por David Xavier para promover a educação e o auto desenvolvimento.
           Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
-        </p>
+        </Typography>
 
-        {/* Botões Centralizados */}
-        <div className="mt-8 flex justify-center gap-6">
+        {/* Botões */}
+        <Box sx={{ mt: 5, display: "flex", justifyContent: "center", gap: 2 }}>
           <Link href="/auth/login" passHref>
-            <Button>Login</Button>
+            <Button variant="contained" color="primary" size="large">
+              Login
+            </Button>
           </Link>
-
           <Link href="/auth/register" passHref>
-            <Button>Registrar</Button>
+            <Button variant="outlined" color="primary" size="large">
+              Registrar
+            </Button>
           </Link>
-        </div>
-      </main>
-    </div>
+        </Box>
+      </Container>
+    </Box>
   );
 }

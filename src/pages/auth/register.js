@@ -1,35 +1,47 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-
-// Importando componentes do Material UI
-import { 
-  Container, Box, Paper, TextField, Button, Typography, 
-  Alert, Stack, Divider 
+import {
+  Container, Box, Paper, TextField, Button, Typography,
+  Alert, Stack, Divider, MenuItem, FormControl, InputLabel, Select,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from "@mui/material";
 
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [sobrenome, setSobrenome] = useState("");
-  const [username, setUsername] = useState(""); // Novo campo
-  const [telefone, setTelefone] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [cep, setCep] = useState("");
   const [password, setPassword] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
+  const [sexo, setSexo] = useState("");
   const [error, setError] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+
   const router = useRouter();
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(null);
+
     try {
-      const response = await fetch("https://facexd-backend.onrender.com/api/auth/register", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, sobrenome, username, telefone, email, cep, password }),
+        body: JSON.stringify({
+          nome,
+          sobrenome,
+          username,
+          email,
+          cep,
+          password,
+          dataNascimento,
+          sexo,
+        }),
       });
 
       if (response.ok) {
-        router.push("/auth/login");
+        setOpenDialog(true); // abrir o dialog de sucesso
       } else {
         const data = await response.json();
         setError(data.message || "Erro ao registrar usuário.");
@@ -37,6 +49,11 @@ export default function RegisterPage() {
     } catch (err) {
       setError("Erro ao conectar com o servidor.");
     }
+  };
+
+  const handleRedirect = (path) => {
+    setOpenDialog(false);
+    router.push(path);
   };
 
   return (
@@ -67,20 +84,6 @@ export default function RegisterPage() {
         <Box component="form" onSubmit={handleRegister} width="100%">
           <Stack spacing={2}>
             <TextField
-              label="Nome"
-              fullWidth
-              required
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <TextField
-              label="Sobrenome"
-              fullWidth
-              required
-              value={sobrenome}
-              onChange={(e) => setSobrenome(e.target.value)}
-            />
-            <TextField
               label="Username"
               fullWidth
               required
@@ -88,12 +91,22 @@ export default function RegisterPage() {
               onChange={(e) => setUsername(e.target.value)}
               helperText="Escolha um nome único para o seu perfil"
             />
-            <TextField
-              label="Telefone (Opcional)"
-              fullWidth
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-            />
+            <Stack direction="row" spacing={2}>
+              <TextField
+                label="Nome"
+                fullWidth
+                required
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+              <TextField
+                label="Sobrenome"
+                fullWidth
+                required
+                value={sobrenome}
+                onChange={(e) => setSobrenome(e.target.value)}
+              />
+            </Stack>
             <TextField
               label="E-mail"
               type="email"
@@ -101,6 +114,27 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+            />
+            <FormControl fullWidth required>
+              <InputLabel id="sexo-label">Sexo</InputLabel>
+              <Select
+                labelId="sexo-label"
+                value={sexo}
+                label="Sexo"
+                onChange={(e) => setSexo(e.target.value)}
+              >
+                <MenuItem value="Masculino">Masculino</MenuItem>
+                <MenuItem value="Feminino">Feminino</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Data de Nascimento"
+              type="date"
+              fullWidth
+              required
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
             <TextField
               label="CEP"
@@ -117,7 +151,6 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-
             <Button
               type="submit"
               variant="contained"
@@ -131,7 +164,6 @@ export default function RegisterPage() {
         </Box>
 
         <Divider sx={{ width: "100%", my: 2 }} />
-
         <Typography color="text.secondary">
           Já tem cadastro?{" "}
           <Button
@@ -144,6 +176,25 @@ export default function RegisterPage() {
           </Button>
         </Typography>
       </Box>
+
+      {/* Dialog de Sucesso */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>🎉 Cadastro Realizado com Sucesso!</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bem-vindo, <strong>{nome}</strong>, ao <strong>Face XD</strong>! <br />
+            Escolha para onde deseja ir:
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleRedirect("/")} variant="contained" color="primary">
+            Feed
+          </Button>
+          <Button onClick={() => handleRedirect("/profile")} variant="outlined">
+            Perfil
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

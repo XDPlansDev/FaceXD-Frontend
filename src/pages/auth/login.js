@@ -1,23 +1,21 @@
-// Caminho: /pages/auth/login.js
+// 📄 Caminho: /pages/auth/login.js
 
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
-
-// 🛠️ Corrigindo os imports
-import { 
-  Container, Box, Paper, TextField, Button, Typography, 
-  Alert, Stack, Divider, FormControlLabel, Checkbox 
+import {
+  Container, Box, Paper, TextField, Button,
+  Typography, Alert, Stack
 } from "@mui/material";
-
-import { FaGithub, FaGoogle } from "react-icons/fa";
+import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+
   const router = useRouter();
-  const { login } = useAuth(); // Verifique se `useAuth` está funcionando
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -27,22 +25,19 @@ export default function LoginPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: identifier, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (login) {
-          login(data.token); // Atualiza o estado global
-          router.push("/feed");
-        } else {
-          console.error("AuthContext não está funcionando corretamente");
-        }
+        login(data.token); // Armazena o token
+        console.log(`✅ Login realizado com @${data.user.username}`);
+        router.push("/feed");
       } else {
-        setError("Credenciais inválidas");
+        setError("Usuário ou senha inválidos.");
       }
     } catch (err) {
-      setError("Erro ao conectar com o servidor");
+      setError("Erro ao conectar com o servidor.");
     }
   };
 
@@ -58,49 +53,31 @@ export default function LoginPage() {
         flexDirection="column"
         alignItems="center"
       >
+        {/* Título */}
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           Entrar
         </Typography>
-        <Typography color="text.secondary" mb={2}>
-          Conecte-se à sua conta
+
+        <Typography color="text.secondary" mb={3}>
+          Faça login com e-mail e senha. O acesso será mantido por <strong>7 dias</strong>.
         </Typography>
 
+        {/* Mensagem de erro */}
         {error && (
           <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Stack direction="row" spacing={2} width="100%" mb={2}>
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<FaGithub />}
-            sx={{ textTransform: "none" }}
-          >
-            GitHub
-          </Button>
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<FaGoogle />}
-            sx={{ textTransform: "none" }}
-          >
-            Google
-          </Button>
-        </Stack>
-
-        <Divider sx={{ width: "100%", my: 2 }}>Ou com e-mail</Divider>
-
+        {/* Formulário de login */}
         <Box component="form" onSubmit={handleLogin} width="100%">
           <Stack spacing={2}>
             <TextField
-              label="E-mail"
-              type="email"
+              label="E-mail ou Username"
               fullWidth
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
             <TextField
               label="Senha"
@@ -110,9 +87,6 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-
-            <FormControlLabel control={<Checkbox />} label="Lembrar de mim" />
-
             <Button
               type="submit"
               variant="contained"
@@ -123,6 +97,14 @@ export default function LoginPage() {
             </Button>
           </Stack>
         </Box>
+
+        {/* Link para registrar */}
+        <Typography mt={3} color="text.secondary">
+          Não tem uma conta?{" "}
+          <Link href="/auth/register" passHref>
+            <Button variant="text" size="small">Registrar</Button>
+          </Link>
+        </Typography>
       </Box>
     </Container>
   );

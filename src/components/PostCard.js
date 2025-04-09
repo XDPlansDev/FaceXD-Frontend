@@ -27,8 +27,14 @@ export default function PostCard({ post, onLike }) {
 
   return (
     <div className="bg-white shadow-md rounded-lg p-4 mb-4">
+      {/* Nome do autor */}
+      <h4 className="text-sm text-gray-500 mb-1">
+        {post.userId?.nome || "Anônimo"}
+      </h4>
+
       <h3 className="text-lg font-bold">{post.title}</h3>
       <p className="text-gray-700 mt-2">{post.content}</p>
+
       <div className="flex items-center gap-2 mt-2">
         <button
           onClick={handleLike}
