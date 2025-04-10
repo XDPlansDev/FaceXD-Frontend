@@ -1,11 +1,12 @@
-// 📄 /components/Navbar.js (com Ant Design)
+// 📄 /components/Navbar.js
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
 import { Layout, Menu, Button, Dropdown, Avatar, Space, Typography } from "antd";
-import { UserOutlined, SettingOutlined, LogoutOutlined, HomeOutlined, MenuOutlined } from "@ant-design/icons";
+import { UserOutlined, SettingOutlined, LogoutOutlined, HomeOutlined } from "@ant-design/icons";
+import SearchUser from "./SearchUser"; // 🆕 Importa o componente de busca
 
 const { Header } = Layout;
 
@@ -40,8 +41,17 @@ export default function Navbar() {
 
   return (
     <Header style={{ background: "#fff", padding: "0 24px", boxShadow: "0 2px 8px #f0f1f2" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
-        {/* Logo e link para o feed */}
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        {/* Logo, Feed e Busca */}
         <Space size="large" align="center">
           <Link href="/">
             <Typography.Title level={4} style={{ margin: 0, color: "#1677ff" }}>
@@ -49,13 +59,18 @@ export default function Navbar() {
             </Typography.Title>
           </Link>
           {user && (
-            <Link href="/feed">
-              <Button type="text" icon={<HomeOutlined />}>Feed</Button>
-            </Link>
+            <>
+              <Link href="/feed">
+                <Button type="text" icon={<HomeOutlined />}>
+                  Feed
+                </Button>
+              </Link>
+              <SearchUser /> {/* 🆕 Componente de busca aqui */}
+            </>
           )}
         </Space>
 
-        {/* Login / Perfil */}
+        {/* Perfil / Login */}
         {user ? (
           <Dropdown menu={{ items: menuItems }} placement="bottomRight">
             <Space style={{ cursor: "pointer" }}>

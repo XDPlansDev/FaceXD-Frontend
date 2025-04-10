@@ -1,6 +1,6 @@
-// 📄 Caminho: context/AuthContext.js
-
+// context/AuthContext.js
 import { createContext, useContext, useState, useEffect } from "react";
+import { Spin } from "antd";
 
 const AuthContext = createContext();
 
@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ⚡️ Verifica o token salvo ao iniciar a aplicacao
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -20,11 +19,11 @@ export function AuthProvider({ children }) {
           return res.json();
         })
         .then((data) => {
-          console.log("🔄 Usuário restaurado da sessão:", data);
+          console.log("🔄 Sessão restaurada:", data);
           setUser(data);
         })
         .catch((err) => {
-          console.warn("❌ Erro ao restaurar sessão:", err.message);
+          console.warn("❌ Erro na sessão:", err.message);
           localStorage.removeItem("token");
           setUser(null);
         })
@@ -34,7 +33,6 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // ✉️ Login com token JWT
   const login = (token) => {
     localStorage.setItem("token", token);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
@@ -45,27 +43,26 @@ export function AuthProvider({ children }) {
         return res.json();
       })
       .then((data) => {
-        console.log("🚀 Login realizado:", data);
+        console.log("🚀 Login efetuado:", data);
         setUser(data);
       })
       .catch((err) => {
-        console.error("❌ Falha no login:", err.message);
+        console.error("❌ Falha ao logar:", err.message);
         localStorage.removeItem("token");
       });
   };
 
-  // ❌ Logout e limpeza da sessão
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    console.log("📄 Sessão encerrada.");
+    console.log("👋 Logout efetuado.");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
       {loading ? (
         <div style={{ padding: "2rem", textAlign: "center" }}>
-          Carregando...
+          <Spin tip="Carregando usuário..." />
         </div>
       ) : (
         children
