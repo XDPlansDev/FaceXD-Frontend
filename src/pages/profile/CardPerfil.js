@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Card, Avatar, Typography, Row, Col, Space, Button, message } from "antd";
 import { motion } from "framer-motion";
+import { StarFilled, StarOutlined } from "@ant-design/icons";
 
-const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser }) => {
+const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser, isOwnProfile }) => {
     const [isFollowing, setIsFollowing] = useState(false);
-
-    // ✅ Verifica se o perfil visualizado é do usuário logado
-    const isOwnProfile = userIdLogado === user?._id;
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // 🔁 Verifica se o usuário logado já está seguindo o perfil
     useEffect(() => {
@@ -16,6 +16,33 @@ const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser }) => {
         console.log("🔄 Verificando se usuário logado segue esse perfil:", seguindo);
         setIsFollowing(seguindo);
     }, [user, userIdLogado]);
+
+    // ⭐ Verifica se o usuário já está favoritado
+    useEffect(() => {
+        if (!user || !userIdLogado) return;
+
+        const checkIfFavorited = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${BASE_URL}/api/users/${userIdLogado}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (res.ok) {
+                    const currentUser = await res.json();
+                    const favoritado = currentUser.favoritos?.includes(user._id);
+                    console.log("⭐ Verificando se usuário está favoritado:", favoritado);
+                    setIsFavorited(favoritado);
+                }
+            } catch (err) {
+                console.error("❌ Erro ao verificar favoritos:", err);
+            }
+        };
+
+        checkIfFavorited();
+    }, [user, userIdLogado, BASE_URL]);
 
     // 👥 Alterna o estado de seguir/deixar de seguir
     const handleFollowToggle = async () => {
@@ -54,6 +81,44 @@ const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser }) => {
         } catch (err) {
             console.error("❌ Erro ao seguir/desseguir usuário:", err);
             message.error("Erro ao seguir usuário.");
+        }
+    };
+
+    // ⭐ Alterna o estado de favoritar/desfavoritar
+    const handleFavoriteToggle = async () => {
+        if (loading) return;
+
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const endpoint = isFavorited ? "unfavorite" : "favorite";
+
+            const res = await fetch(`${BASE_URL}/api/users/${user._id}/${endpoint}`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("❌ Erro bruto na resposta:", text);
+                throw new Error(`Falha ao ${isFavorited ? "desfavoritar" : "favoritar"}.`);
+            }
+
+            const result = await res.json();
+            console.log(`⭐ Resultado da ação de ${isFavorited ? "desfavoritar" : "favoritar"}:`, result);
+
+            // ✅ Atualiza o estado de favoritos visualmente
+            setIsFavorited((prev) => !prev);
+
+            message.success(isFavorited ? "Usuário desfavoritado!" : "Usuário favoritado!");
+        } catch (err) {
+            console.error("❌ Erro ao favoritar/desfavoritar usuário:", err);
+            message.error(`Erro ao ${isFavorited ? "desfavoritar" : "favoritar"} usuário.`);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -100,15 +165,24 @@ const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser }) => {
                             <div><strong>⭐ Favoritos:</strong> {user?.favoritosCount || 0}</div>
                         </Space>
 
-                        {!isOwnProfile && (
-                            <div style={{ marginTop: 12 }}>
+                        {userIdLogado && !isOwnProfile && user && userIdLogado !== user._id && (
+                            <Space direction="vertical" style={{ marginTop: 12 }}>
                                 <Button
                                     type={isFollowing ? "default" : "primary"}
                                     onClick={handleFollowToggle}
                                 >
                                     {isFollowing ? "➖ Deixar de seguir" : "➕ Seguir"}
                                 </Button>
-                            </div>
+
+                                <Button
+                                    type={isFavorited ? "primary" : "default"}
+                                    icon={isFavorited ? <StarFilled /> : <StarOutlined />}
+                                    onClick={handleFavoriteToggle}
+                                    loading={loading}
+                                >
+                                    {isFavorited ? "Desfavoritar" : "Favoritar"}
+                                </Button>
+                            </Space>
                         )}
                     </Col>
                 </Row>

@@ -11,29 +11,23 @@ import {
     Empty,
 } from "antd";
 import { SearchOutlined, UserOutlined } from "@ant-design/icons";
-import { useMediaQuery } from "react-responsive";
 import Link from "next/link";
 
 const { Search } = Input;
 const { Text } = Typography;
 
 export default function SearchUser() {
-    // 🎯 Estados para controle do termo, resultados, loading e modal (mobile)
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // 📱 Verificação de tela mobile
-    const isMobile = useMediaQuery({ maxWidth: 768 });
-
-    /**
-     * 🔍 Função para buscar usuários no backend
-     * Consulta a API com o termo de busca
-     */
     const handleSearch = async (value) => {
         const term = value.trim();
-        if (!term) return;
+        if (term.length < 3) {
+            setResults([]);
+            return;
+        }
 
         console.log("🔍 Buscando usuários por:", term);
         setLoading(true);
@@ -52,28 +46,27 @@ export default function SearchUser() {
         }
     };
 
-    /**
-     * 🎯 Campo de pesquisa reutilizável
-     */
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        handleSearch(value);
+    };
+
     const renderSearchInput = (
         <Search
             placeholder="Pesquisar usuários..."
             allowClear
-            enterButton="Buscar"
-            size="middle"
+            size="large"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onSearch={handleSearch}
-            style={{ maxWidth: 350 }}
+            onChange={handleInputChange}
+            style={{ width: "100%" }}
         />
     );
 
-    /**
-     * 📋 Exibe os resultados da busca
-     */
     const renderResults = () => {
         if (loading) return <Spin tip="Carregando usuários..." />;
-        if (!results.length) return <Empty description="Nenhum usuário encontrado." />;
+        if (!results.length && searchTerm.length >= 3) return <Empty description="Nenhum usuário encontrado." />;
+        if (searchTerm.length < 3) return <Empty description="Digite pelo menos 3 letras para buscar." />;
 
         return (
             <List
@@ -98,33 +91,29 @@ export default function SearchUser() {
 
     return (
         <>
-            {/* 🔍 Versão Mobile com Modal */}
-            {isMobile ? (
-                <>
-                    <Button
-                        type="text"
-                        icon={<SearchOutlined />}
-                        onClick={() => setIsModalOpen(true)}
-                    />
-                    <Modal
-                        title="Pesquisar usuários"
-                        open={isModalOpen}
-                        onCancel={() => setIsModalOpen(false)}
-                        footer={null}
-                    >
-                        <Space direction="vertical" style={{ width: "100%" }}>
-                            {renderSearchInput}
-                            {renderResults()}
-                        </Space>
-                    </Modal>
-                </>
-            ) : (
-                // 💻 Versão Desktop
-                <Space size="large" align="center">
+            <Button
+                type="text"
+                icon={<SearchOutlined />}
+                onClick={() => setIsModalOpen(true)}
+            />
+            <Modal
+                title="Pesquisar usuários"
+                open={isModalOpen}
+                onCancel={() => {
+                    setIsModalOpen(false);
+                    setSearchTerm("");
+                    setResults([]);
+                }}
+                footer={null}
+                width="100%"
+                style={{ top: 0 }}
+                bodyStyle={{ height: "calc(100vh - 110px)", overflow: "auto" }}
+            >
+                <Space direction="vertical" style={{ width: "100%" }} size="large">
                     {renderSearchInput}
                     {renderResults()}
                 </Space>
-            )}
+            </Modal>
         </>
     );
 }

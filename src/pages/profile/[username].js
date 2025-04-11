@@ -41,10 +41,40 @@ export default function ProfilePage() {
 
         setUser(data);
         const idLogado = localStorage.getItem("userId");
-        setIsOwnProfile(data._id === idLogado);
+        if (idLogado) {
+          setIsOwnProfile(data._id === idLogado);
+        } else {
+          setIsOwnProfile(false);
+        }
+
+        // Buscar contagem de favoritos
+        fetchFavoritosCount(data._id);
       }
     } catch (err) {
       console.error("❌ Erro ao buscar perfil:", err);
+    }
+  };
+
+  const fetchFavoritosCount = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE_URL}/api/users/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        console.log("⭐ Dados de favoritos carregados:", userData);
+
+        setUser(prev => ({
+          ...prev,
+          favoritosCount: userData.favoritos?.length || 0
+        }));
+      }
+    } catch (err) {
+      console.error("❌ Erro ao buscar contagem de favoritos:", err);
     }
   };
 
