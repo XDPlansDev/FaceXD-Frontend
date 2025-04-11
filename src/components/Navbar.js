@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import {
   Box,
   Flex,
@@ -32,7 +33,12 @@ import {
   DrawerContent,
   DrawerCloseButton,
   VStack,
-  Divider
+  Divider,
+  MenuItemOption,
+  MenuOptionGroup,
+  MenuDivider,
+  Spinner,
+  Center
 } from "@chakra-ui/react";
 import {
   FaUser,
@@ -45,18 +51,21 @@ import {
   FaBell,
   FaBars,
   FaNewspaper,
-  FaUsers
+  FaUsers,
+  FaCheck,
+  FaTrash
 } from "react-icons/fa";
 import SearchUser from "./SearchUser";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification, fetchNotifications } = useNotifications();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [notifications, setNotifications] = useState(3); // Simulação de notificações
+  const { isOpen: isNotificationsOpen, onOpen: onNotificationsOpen, onClose: onNotificationsClose } = useDisclosure();
 
   useEffect(() => {
     setMounted(true);
@@ -85,6 +94,61 @@ export default function Navbar() {
         isClosable: true,
       });
     }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Marcar como lida
+    await markAsRead(notification._id);
+
+    // Navegar com base no tipo de notificação
+    switch (notification.type) {
+      case "friend_request":
+      case "friend_accepted":
+        router.push(`/profile/${notification.sender.username}`);
+        break;
+      case "post_like":
+      case "post_comment":
+        router.push(`/feed/${notification.relatedId}`);
+        break;
+      case "follow":
+        router.push(`/profile/${notification.sender.username}`);
+        break;
+      default:
+        break;
+    }
+
+    onNotificationsClose();
+  };
+
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
+    toast({
+      title: "Notificações marcadas como lidas",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleDeleteNotification = async (notificationId, e) => {
+    e.stopPropagation();
+    await deleteNotification(notificationId);
+    toast({
+      title: "Notificação excluída",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  };
+
+  const handleViewAllNotifications = () => {
+    onNotificationsClose();
+    router.push("/notifications");
+  };
+
+  const handleNotificationsOpen = () => {
+    fetchNotifications();
+    onNotificationsOpen();
   };
 
   if (!mounted) return null;
@@ -168,8 +232,9 @@ export default function Navbar() {
                       icon={<FaBell />}
                       variant="ghost"
                       aria-label="Notificações"
+                      onClick={handleNotificationsOpen}
                     />
-                    {notifications > 0 && (
+                    {unreadCount > 0 && (
                       <Badge
                         colorScheme="red"
                         position="absolute"
@@ -177,7 +242,7 @@ export default function Navbar() {
                         right="-1"
                         borderRadius="full"
                       >
-                        {notifications}
+                        {unreadCount}
                       </Badge>
                     )}
                   </Box>
@@ -209,6 +274,9 @@ export default function Navbar() {
                     </MenuItem>
                     <MenuItem icon={<Icon as={FaUsers} />} as={Link} href="/friends">
                       Amigos
+                    </MenuItem>
+                    <MenuItem icon={<Icon as={FaBell} />} as={Link} href="/notifications">
+                      Notificações
                     </MenuItem>
                     <MenuItem icon={<Icon as={FaCog} />} as={Link} href="/profile/settings">
                       Configurações
@@ -258,10 +326,114 @@ export default function Navbar() {
                       Feed
                     </Button>
                   </Link>
+                  <Link href="/notifications">
+                    <Button
+                      leftIcon={<Icon as={FaBell} />}
+                      variant="ghost"
+                      width="100%"
+                      justifyContent="flex-start"
+                    >
+                      Notificações
+                      {unreadCount > 0 && (
+                        <Badge ml={2} colorScheme="red">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
                   <SearchUser />
                 </>
               )}
             </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Menu de Notificações */}
+      <Drawer isOpen={isNotificationsOpen} placement="right" onClose={onNotificationsClose}>
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>
+            <Flex justifyContent="space-between" alignItems="center">
+              <Text>Notificações</Text>
+              {notifications.length > 0 && (
+                <Button
+                  size="sm"
+                  leftIcon={<FaCheck />}
+                  colorScheme="blue"
+                  variant="ghost"
+                  onClick={handleMarkAllAsRead}
+                >
+                  Marcar todas como lidas
+                </Button>
+              )}
+            </Flex>
+          </DrawerHeader>
+          <DrawerBody>
+            {loading ? (
+              <Center py={10}>
+                <Spinner size="xl" />
+              </Center>
+            ) : notifications && notifications.length > 0 ? (
+              <VStack spacing={4} align="stretch">
+                {notifications.map((notification) => (
+                  <Box
+                    key={notification._id}
+                    p={3}
+                    borderWidth="1px"
+                    borderRadius="md"
+                    bg={notification.read ? "transparent" : colorMode === "light" ? "blue.50" : "blue.900"}
+                    cursor="pointer"
+                    onClick={() => handleNotificationClick(notification)}
+                    _hover={{ bg: colorMode === "light" ? "gray.50" : "gray.700" }}
+                    position="relative"
+                  >
+                    <Flex justifyContent="space-between" alignItems="center">
+                      <HStack spacing={3}>
+                        <Avatar
+                          size="sm"
+                          name={notification.sender?.nome || "Usuário"}
+                          src={notification.sender?.avatar}
+                        />
+                        <Box>
+                          <Text fontWeight="medium">{notification.content}</Text>
+                          <Text fontSize="xs" color="gray.500">
+                            {new Date(notification.createdAt).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                        </Box>
+                      </HStack>
+                      <IconButton
+                        icon={<FaTrash />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        aria-label="Excluir notificação"
+                        onClick={(e) => handleDeleteNotification(notification._id, e)}
+                      />
+                    </Flex>
+                  </Box>
+                ))}
+                <Button
+                  mt={4}
+                  colorScheme="blue"
+                  variant="outline"
+                  onClick={handleViewAllNotifications}
+                >
+                  Ver todas as notificações
+                </Button>
+              </VStack>
+            ) : (
+              <Center py={10}>
+                <Text color="gray.500">Nenhuma notificação encontrada</Text>
+              </Center>
+            )}
           </DrawerBody>
         </DrawerContent>
       </Drawer>

@@ -1,6 +1,6 @@
 // 📄 Caminho: /pages/auth/register.js
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import {
   Box,
@@ -32,6 +32,8 @@ export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [sobrenome, setSobrenome] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState({ available: null, suggestions: [] });
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [email, setEmail] = useState("");
   const [cep, setCep] = useState("");
   const [password, setPassword] = useState("");
@@ -87,6 +89,33 @@ export default function RegisterPage() {
     router.push(path);
   };
 
+  const checkUsernameAvailability = async (username) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus({ available: null, suggestions: [] });
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check-username/${username}`);
+      const data = await response.json();
+      setUsernameStatus(data);
+    } catch (err) {
+      console.error("Erro ao verificar username:", err);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  // Debounce para evitar muitas requisições
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkUsernameAvailability(username);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username]);
+
   return (
     <Container maxW="sm">
       <Box
@@ -121,7 +150,40 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Escolha um nome único para o seu perfil"
+                isInvalid={usernameStatus.available === false}
               />
+              {isCheckingUsername && (
+                <Text fontSize="sm" color="gray.500" mt={1}>
+                  Verificando disponibilidade...
+                </Text>
+              )}
+              {usernameStatus.available === true && (
+                <Text fontSize="sm" color="green.500" mt={1}>
+                  ✓ Username disponível
+                </Text>
+              )}
+              {usernameStatus.available === false && (
+                <Box mt={1}>
+                  <Text fontSize="sm" color="red.500">
+                    ✗ Username já está em uso
+                  </Text>
+                  <Text fontSize="sm" color="gray.600" mt={1}>
+                    Sugestões disponíveis:
+                  </Text>
+                  <VStack align="start" spacing={1} mt={1}>
+                    {usernameStatus.suggestions.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setUsername(suggestion)}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </VStack>
+                </Box>
+              )}
             </FormControl>
 
             <HStack spacing={4} width="100%">

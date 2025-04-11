@@ -29,6 +29,7 @@ const CardPerfil = ({ user, isOwnProfile }) => {
     const [loading, setLoading] = useState(false);
     const [idade, setIdade] = useState(null);
     const [showActions, setShowActions] = useState(false);
+    const [friendStatus, setFriendStatus] = useState('none'); // 'none', 'requested', 'friends', 'pending'
     const toast = useToast();
     const userIdLogado = localStorage.getItem("userId");
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -124,6 +125,40 @@ const CardPerfil = ({ user, isOwnProfile }) => {
             setIdade(idadeCalculada);
         }
     }, [user]);
+
+    // Verifica o status da amizade
+    useEffect(() => {
+        if (!user || !userIdLogado) return;
+
+        const checkFriendStatus = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${BASE_URL}/api/users/${userIdLogado}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (res.ok) {
+                    const currentUser = await res.json();
+
+                    if (currentUser.friends.includes(user._id)) {
+                        setFriendStatus('friends');
+                    } else if (currentUser.friendRequests.includes(user._id)) {
+                        setFriendStatus('pending');
+                    } else if (user.friendRequests?.includes(userIdLogado)) {
+                        setFriendStatus('requested');
+                    } else {
+                        setFriendStatus('none');
+                    }
+                }
+            } catch (err) {
+                console.error("❌ Erro ao verificar status de amizade:", err);
+            }
+        };
+
+        checkFriendStatus();
+    }, [user, userIdLogado, BASE_URL]);
 
     // 👥 Alterna o estado de seguir/deixar de seguir
     const handleFollowToggle = async () => {
@@ -223,6 +258,135 @@ const CardPerfil = ({ user, isOwnProfile }) => {
         }
     };
 
+    // Função para enviar solicitação de amizade
+    const handleFriendRequest = async () => {
+        if (loading) return;
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${BASE_URL}/api/users/${user._id}/friend-request`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Erro ao enviar solicitação de amizade");
+            }
+
+            setFriendStatus('requested');
+            toast({
+                title: "Solicitação enviada",
+                description: "Solicitação de amizade enviada com sucesso",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
+        } catch (err) {
+            console.error("❌ Erro ao enviar solicitação de amizade:", err);
+            toast({
+                title: "Erro",
+                description: err.message || "Erro ao enviar solicitação de amizade",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Função para aceitar solicitação de amizade
+    const handleAcceptFriend = async () => {
+        if (loading) return;
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${BASE_URL}/api/users/${user._id}/accept-friend`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Erro ao aceitar solicitação de amizade");
+            }
+
+            setFriendStatus('friends');
+            toast({
+                title: "Amizade aceita",
+                description: "Vocês agora são amigos!",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
+        } catch (err) {
+            console.error("❌ Erro ao aceitar solicitação de amizade:", err);
+            toast({
+                title: "Erro",
+                description: err.message || "Erro ao aceitar solicitação de amizade",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Função para rejeitar solicitação de amizade
+    const handleRejectFriend = async () => {
+        if (loading) return;
+        setLoading(true);
+
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${BASE_URL}/api/users/${user._id}/reject-friend`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Erro ao rejeitar solicitação de amizade");
+            }
+
+            setFriendStatus('none');
+            toast({
+                title: "Solicitação rejeitada",
+                description: "Solicitação de amizade foi rejeitada",
+                status: "info",
+                duration: 2000,
+                isClosable: true,
+            });
+        } catch (err) {
+            console.error("❌ Erro ao rejeitar solicitação de amizade:", err);
+            toast({
+                title: "Erro",
+                description: err.message || "Erro ao rejeitar solicitação de amizade",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // 🎂 Função melhorada para calcular idade
     const calcularIdade = (dataNasc) => {
         if (!dataNasc) return null;
@@ -296,36 +460,88 @@ const CardPerfil = ({ user, isOwnProfile }) => {
                     <HStack spacing={4} align="center">
                         <Avatar
                             size="xl"
-                            name={user?.name}
+                            name={`${user?.nome} ${user?.sobrenome}`}
                             src={user?.avatar}
                             border="3px solid"
                             borderColor="blue.400"
                         />
                         <VStack align="start" spacing={1}>
-                            <Text fontSize="2xl" fontWeight="bold" color={textColor}>{user?.name || "Usuário"}</Text>
+                            <Text fontSize="2xl" fontWeight="bold" color={textColor}>
+                                {user ? `${user.nome} ${user.sobrenome}` : "Usuário"}
+                            </Text>
                             <Text color={subTextColor}>@{user?.username || "username"}</Text>
                         </VStack>
                     </HStack>
 
                     {showActions && (
-                        <HStack mt={{ base: 4, md: 0 }} spacing={3}>
+                        <HStack spacing={4} mt={4}>
                             <Button
-                                colorScheme={isFollowing ? "gray" : "blue"}
-                                variant={isFollowing ? "outline" : "solid"}
+                                leftIcon={<Icon as={isFollowing ? null : FaUserFriends} />}
                                 onClick={handleFollowToggle}
                                 isLoading={loading}
-                                leftIcon={<Icon as={FaUserFriends} />}
+                                colorScheme={isFollowing ? "red" : "blue"}
+                                variant={isFollowing ? "outline" : "solid"}
                             >
                                 {isFollowing ? "Deixar de Seguir" : "Seguir"}
                             </Button>
+
+                            {friendStatus === 'none' && (
+                                <Button
+                                    leftIcon={<Icon as={FaUserFriends} />}
+                                    onClick={handleFriendRequest}
+                                    isLoading={loading}
+                                    colorScheme="green"
+                                >
+                                    Adicionar Amigo
+                                </Button>
+                            )}
+
+                            {friendStatus === 'pending' && (
+                                <HStack>
+                                    <Button
+                                        onClick={handleAcceptFriend}
+                                        isLoading={loading}
+                                        colorScheme="green"
+                                    >
+                                        Aceitar
+                                    </Button>
+                                    <Button
+                                        onClick={handleRejectFriend}
+                                        isLoading={loading}
+                                        colorScheme="red"
+                                        variant="outline"
+                                    >
+                                        Rejeitar
+                                    </Button>
+                                </HStack>
+                            )}
+
+                            {friendStatus === 'requested' && (
+                                <Button
+                                    isDisabled
+                                    colorScheme="yellow"
+                                >
+                                    Solicitação Enviada
+                                </Button>
+                            )}
+
+                            {friendStatus === 'friends' && (
+                                <Button
+                                    leftIcon={<Icon as={FaUserFriends} />}
+                                    isDisabled
+                                    colorScheme="green"
+                                >
+                                    Amigos
+                                </Button>
+                            )}
+
                             <Button
-                                colorScheme={isFavorited ? "yellow" : "gray"}
-                                variant="outline"
-                                leftIcon={<Icon as={isFavorited ? FaStar : FaRegStar} />}
                                 onClick={handleFavoriteToggle}
                                 isLoading={loading}
+                                variant="ghost"
+                                color={isFavorited ? "yellow.500" : textColor}
                             >
-                                {isFavorited ? "Favoritado" : "Favoritar"}
+                                <Icon as={isFavorited ? FaStar : FaRegStar} boxSize={5} />
                             </Button>
                         </HStack>
                     )}
