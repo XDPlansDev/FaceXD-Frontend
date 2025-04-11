@@ -21,10 +21,12 @@ export function AuthProvider({ children }) {
         .then((data) => {
           console.log("🔄 Sessão restaurada:", data);
           setUser(data);
+          localStorage.setItem("userId", data._id);
         })
         .catch((err) => {
           console.warn("❌ Erro na sessão:", err.message);
           localStorage.removeItem("token");
+          localStorage.removeItem("userId");
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -45,15 +47,18 @@ export function AuthProvider({ children }) {
       .then((data) => {
         console.log("🚀 Login efetuado:", data);
         setUser(data);
+        localStorage.setItem("userId", data._id);
       })
       .catch((err) => {
         console.error("❌ Falha ao logar:", err.message);
         localStorage.removeItem("token");
+        localStorage.removeItem("userId");
       });
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("userId");
     setUser(null);
     console.log("👋 Logout efetuado.");
   };
