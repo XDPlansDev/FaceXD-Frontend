@@ -3,11 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import {
-  Container, Box, Paper, TextField, Button, Typography,
-  Alert, Stack, Divider, MenuItem, FormControl, InputLabel, Select,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-  CircularProgress
-} from "@mui/material";
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  VStack,
+  HStack,
+  Heading,
+  Text,
+  Alert,
+  AlertIcon,
+  Divider,
+  Select,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  Spinner,
+  Container
+} from "@chakra-ui/react";
 
 export default function RegisterPage() {
   // ✔️ Estados do formulário
@@ -20,9 +38,9 @@ export default function RegisterPage() {
   const [dataNascimento, setDataNascimento] = useState("");
   const [sexo, setSexo] = useState("");
   const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false); // ⏳ Loader
 
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const router = useRouter();
 
   const handleRegister = async (e) => {
@@ -52,7 +70,7 @@ export default function RegisterPage() {
         console.log("✅ Cadastro realizado:", data);
         // ✉️ Armazena o token e redireciona para o feed
         localStorage.setItem("token", data.token);
-        setOpenDialog(true);
+        onOpen();
       } else {
         setError(data.message || "Erro ao registrar usuário.");
       }
@@ -65,151 +83,160 @@ export default function RegisterPage() {
   };
 
   const handleRedirect = (path) => {
-    setOpenDialog(false);
+    onClose();
     router.push(path);
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxW="sm">
       <Box
-        component={Paper}
-        elevation={6}
-        p={4}
+        bg="white"
+        boxShadow="lg"
+        p={6}
         mt={8}
-        borderRadius={3}
+        borderRadius="lg"
         display="flex"
         flexDirection="column"
         alignItems="center"
       >
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
+        <Heading as="h5" size="lg" fontWeight="bold" mb={2}>
           Criar Conta
-        </Typography>
-        <Typography color="text.secondary" mb={2}>
+        </Heading>
+        <Text color="gray.500" mb={4}>
           Preencha os campos abaixo para criar sua conta
-        </Typography>
+        </Text>
 
         {error && (
-          <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+          <Alert status="error" borderRadius="md" width="100%" mb={4}>
+            <AlertIcon />
             {error}
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleRegister} width="100%">
-          <Stack spacing={2}>
-            <TextField
-              label="Username"
-              fullWidth
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              helperText="Escolha um nome único para o seu perfil"
-            />
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Nome"
-                fullWidth
-                required
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
+        <Box as="form" onSubmit={handleRegister} width="100%">
+          <VStack spacing={4}>
+            <FormControl isRequired>
+              <FormLabel>Username</FormLabel>
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Escolha um nome único para o seu perfil"
               />
-              <TextField
-                label="Sobrenome"
-                fullWidth
-                required
-                value={sobrenome}
-                onChange={(e) => setSobrenome(e.target.value)}
+            </FormControl>
+
+            <HStack spacing={4} width="100%">
+              <FormControl isRequired>
+                <FormLabel>Nome</FormLabel>
+                <Input
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Sobrenome</FormLabel>
+                <Input
+                  value={sobrenome}
+                  onChange={(e) => setSobrenome(e.target.value)}
+                />
+              </FormControl>
+            </HStack>
+
+            <FormControl isRequired>
+              <FormLabel>E-mail</FormLabel>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-            </Stack>
-            <TextField
-              label="E-mail"
-              type="email"
-              fullWidth
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <FormControl fullWidth required>
-              <InputLabel id="sexo-label">Sexo</InputLabel>
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Sexo</FormLabel>
               <Select
-                labelId="sexo-label"
                 value={sexo}
-                label="Sexo"
                 onChange={(e) => setSexo(e.target.value)}
+                placeholder="Selecione"
               >
-                <MenuItem value="Masculino">Masculino</MenuItem>
-                <MenuItem value="Feminino">Feminino</MenuItem>
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
               </Select>
             </FormControl>
-            <TextField
-              label="Data de Nascimento"
-              type="date"
-              fullWidth
-              required
-              value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="CEP"
-              fullWidth
-              required
-              value={cep}
-              onChange={(e) => setCep(e.target.value)}
-            />
-            <TextField
-              label="Senha"
-              type="password"
-              fullWidth
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+
+            <FormControl isRequired>
+              <FormLabel>Data de Nascimento</FormLabel>
+              <Input
+                type="date"
+                value={dataNascimento}
+                onChange={(e) => setDataNascimento(e.target.value)}
+              />
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>CEP</FormLabel>
+              <Input
+                value={cep}
+                onChange={(e) => setCep(e.target.value)}
+              />
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Senha</FormLabel>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormControl>
+
             <Button
               type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ textTransform: "none", py: 1.5 }}
-              disabled={loading} // Evita múltiplos envios
+              colorScheme="blue"
+              width="100%"
+              py={6}
+              isLoading={loading}
+              loadingText="Criando conta..."
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : "Criar Conta"}
+              Criar Conta
             </Button>
-          </Stack>
+          </VStack>
         </Box>
 
-        <Divider sx={{ width: "100%", my: 2 }} />
+        <Divider my={4} width="100%" />
 
-        <Typography color="text.secondary">
+        <Text color="gray.500">
           Já tem cadastro?{" "}
           <Button
-            variant="text"
-            color="primary"
+            variant="link"
+            colorScheme="blue"
             onClick={() => router.push("/auth/login")}
-            sx={{ textTransform: "none", fontWeight: "bold" }}
+            fontWeight="bold"
           >
             Faça seu login
           </Button>
-        </Typography>
+        </Text>
       </Box>
 
-      {/* Dialog de Sucesso */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>🎉 Cadastro Realizado com Sucesso!</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Bem-vindo, <strong>{nome}</strong>, ao <strong>Face XD</strong>! <br />
-            Escolha para onde deseja ir:
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => handleRedirect("/")} variant="contained" color="primary">
-            Feed
-          </Button>
-          <Button onClick={() => handleRedirect("/profile")} variant="outlined">
-            Perfil
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Modal de Sucesso */}
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>🎉 Cadastro Realizado com Sucesso!</ModalHeader>
+          <ModalBody>
+            <Text>
+              Bem-vindo, <strong>{nome}</strong>, ao <strong>Face XD</strong>! <br />
+              Escolha para onde deseja ir:
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => handleRedirect("/")}>
+              Feed
+            </Button>
+            <Button variant="outline" onClick={() => handleRedirect("/profile")}>
+              Perfil
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Container>
   );
 }

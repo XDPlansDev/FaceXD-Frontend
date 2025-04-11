@@ -5,17 +5,21 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import {
-  Form,
-  Input,
+  Box,
   Button,
-  Typography,
+  FormControl,
+  FormLabel,
+  Input,
+  VStack,
+  Heading,
+  Text,
   Alert,
-  Spin,
+  AlertIcon,
   Card,
-  Space
-} from "antd";
-
-const { Title, Text } = Typography;
+  CardBody,
+  Spinner,
+  useToast
+} from "@chakra-ui/react";
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -25,8 +29,10 @@ export default function LoginPage() {
 
   const router = useRouter();
   const { login } = useAuth();
+  const toast = useToast();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError(null);
     setLoading(true);
 
@@ -55,56 +61,66 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "auto", padding: "2rem" }}>
+    <Box maxW="400px" mx="auto" p="2rem">
       <Card>
-        <Space direction="vertical" style={{ width: "100%" }} size="large">
-          <Title level={3} style={{ textAlign: "center" }}>
-            Entrar
-          </Title>
-          <Text type="secondary" style={{ textAlign: "center", display: "block" }}>
-            Faça login com e-mail e senha.
-          </Text>
+        <CardBody>
+          <VStack spacing={6} width="100%">
+            <Heading as="h3" size="lg" textAlign="center">
+              Entrar
+            </Heading>
+            <Text color="gray.500" textAlign="center">
+              Faça login com e-mail e senha.
+            </Text>
 
-          {error && <Alert type="error" message={error} showIcon />}
+            {error && (
+              <Alert status="error" borderRadius="md">
+                <AlertIcon />
+                {error}
+              </Alert>
+            )}
 
-          <Form layout="vertical" onFinish={handleLogin}>
-            <Form.Item label="E-mail ou Username" required>
-              <Input
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                disabled={loading}
-              />
-            </Form.Item>
-            <Form.Item label="Senha" required>
-              <Input.Password
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
-            </Form.Item>
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
-                loading={loading}
-                disabled={!identifier || !password}
-              >
-                Entrar
-              </Button>
-            </Form.Item>
-          </Form>
+            <Box as="form" onSubmit={handleLogin} width="100%">
+              <VStack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>E-mail ou Username</FormLabel>
+                  <Input
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    isDisabled={loading}
+                  />
+                </FormControl>
+                <FormControl isRequired>
+                  <FormLabel>Senha</FormLabel>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    isDisabled={loading}
+                  />
+                </FormControl>
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  width="100%"
+                  isLoading={loading}
+                  isDisabled={!identifier || !password}
+                >
+                  Entrar
+                </Button>
+              </VStack>
+            </Box>
 
-          <Text type="secondary" style={{ textAlign: "center" }}>
-            Não tem uma conta?{' '}
-            <Link href="/auth/register" passHref>
-              <Button type="link" size="small">
-                Registrar
-              </Button>
-            </Link>
-          </Text>
-        </Space>
+            <Text color="gray.500" textAlign="center">
+              Não tem uma conta?{' '}
+              <Link href="/auth/register" passHref>
+                <Button as="a" variant="link" size="sm" colorScheme="blue">
+                  Registrar
+                </Button>
+              </Link>
+            </Text>
+          </VStack>
+        </CardBody>
       </Card>
-    </div>
+    </Box>
   );
 }
