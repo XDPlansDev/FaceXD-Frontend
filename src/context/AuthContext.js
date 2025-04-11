@@ -1,6 +1,6 @@
 // context/AuthContext.js
 import { createContext, useContext, useState, useEffect } from "react";
-import { Spin } from "antd";
+import { Spinner, Center, Box } from "@chakra-ui/react";
 
 const AuthContext = createContext();
 
@@ -61,9 +61,12 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
       {loading ? (
-        <div style={{ padding: "2rem", textAlign: "center" }}>
-          <Spin tip="Carregando usuário..." />
-        </div>
+        <Center h="100vh">
+          <Box textAlign="center">
+            <Spinner size="xl" />
+            <Box mt={4}>Carregando usuário...</Box>
+          </Box>
+        </Center>
       ) : (
         children
       )}

@@ -1,12 +1,28 @@
 import { useEffect, useState } from "react";
-import { Card, Avatar, Typography, Row, Col, Space, Button, message } from "antd";
+import {
+    Box,
+    Avatar,
+    Text,
+    Flex,
+    Grid,
+    HStack,
+    Button,
+    useToast,
+    VStack,
+    Divider,
+    Badge,
+    Icon
+} from "@chakra-ui/react";
 import { motion } from "framer-motion";
-import { StarFilled, StarOutlined } from "@ant-design/icons";
+import { FaStar, FaRegStar } from "react-icons/fa";
 
-const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser, isOwnProfile }) => {
+const CardPerfil = ({ user, isOwnProfile }) => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [isFavorited, setIsFavorited] = useState(false);
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
+    const userIdLogado = localStorage.getItem("userId");
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
     // 🔁 Verifica se o usuário logado já está seguindo o perfil
     useEffect(() => {
@@ -69,18 +85,29 @@ const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser, isOwnProfile }) => 
             // ✅ Atualiza o estado de seguidores visualmente
             setIsFollowing((prev) => !prev);
 
-            setUser((prev) => {
-                const alreadyFollowing = prev.followers?.includes(userIdLogado);
-                const updatedFollowers = alreadyFollowing
-                    ? prev.followers.filter((id) => id !== userIdLogado)
-                    : [...(prev.followers || []), userIdLogado];
+            // Atualiza o estado do usuário
+            const updatedUser = { ...user };
+            const alreadyFollowing = updatedUser.followers?.includes(userIdLogado);
+            updatedUser.followers = alreadyFollowing
+                ? updatedUser.followers.filter((id) => id !== userIdLogado)
+                : [...(updatedUser.followers || []), userIdLogado];
 
-                console.log("👥 Novos seguidores:", updatedFollowers);
-                return { ...prev, followers: updatedFollowers };
+            console.log("👥 Novos seguidores:", updatedUser.followers);
+
+            toast({
+                title: alreadyFollowing ? "Deixou de seguir" : "Seguindo",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
             });
         } catch (err) {
             console.error("❌ Erro ao seguir/desseguir usuário:", err);
-            message.error("Erro ao seguir usuário.");
+            toast({
+                title: "Erro ao seguir usuário",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
         }
     };
 
@@ -101,93 +128,133 @@ const CardPerfil = ({ user, userIdLogado, BASE_URL, setUser, isOwnProfile }) => 
                 },
             });
 
-            if (!res.ok) {
-                const text = await res.text();
-                console.error("❌ Erro bruto na resposta:", text);
-                throw new Error(`Falha ao ${isFavorited ? "desfavoritar" : "favoritar"}.`);
+            if (res.ok) {
+                setIsFavorited(!isFavorited);
+                toast({
+                    title: isFavorited ? "Removido dos favoritos" : "Adicionado aos favoritos",
+                    status: "success",
+                    duration: 2000,
+                    isClosable: true,
+                });
             }
-
-            const result = await res.json();
-            console.log(`⭐ Resultado da ação de ${isFavorited ? "desfavoritar" : "favoritar"}:`, result);
-
-            // ✅ Atualiza o estado de favoritos visualmente
-            setIsFavorited((prev) => !prev);
-
-            message.success(isFavorited ? "Usuário desfavoritado!" : "Usuário favoritado!");
         } catch (err) {
-            console.error("❌ Erro ao favoritar/desfavoritar usuário:", err);
-            message.error(`Erro ao ${isFavorited ? "desfavoritar" : "favoritar"} usuário.`);
+            console.error("❌ Erro ao favoritar/desfavoritar:", err);
+            toast({
+                title: "Erro ao favoritar usuário",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
         } finally {
             setLoading(false);
         }
     };
 
-    // 📆 Calcula idade a partir da data de nascimento
     const calcularIdade = (dataNasc) => {
         if (!dataNasc) return null;
-        const nasc = new Date(dataNasc);
         const hoje = new Date();
-        let idade = hoje.getFullYear() - nasc.getFullYear();
-        const m = hoje.getMonth() - nasc.getMonth();
-        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+        const nascimento = new Date(dataNasc);
+        let idade = hoje.getFullYear() - nascimento.getFullYear();
+        const mes = hoje.getMonth() - nascimento.getMonth();
+        if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+            idade--;
+        }
         return idade;
     };
 
-    // 📅 Formata a data de nascimento com idade
     const formatarData = (dataISO) => {
-        if (!dataISO) return "Data não informada";
-        const data = new Date(dataISO);
-        return `${data.toLocaleDateString("pt-BR")} (${calcularIdade(dataISO)} anos)`;
+        if (!dataISO) return null;
+        return new Date(dataISO).toLocaleDateString("pt-BR");
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-            <Card>
-                <Row gutter={[24, 16]} align="middle">
-                    <Col>
-                        <Avatar size={80} src={user?.avatar || "/profile-default.svg"} />
-                    </Col>
-                    <Col flex="auto">
-                        <Typography.Title level={4}>
-                            {user?.nome} {user?.sobrenome}
-                        </Typography.Title>
-                        <Typography.Text type="secondary">@{user?.username}</Typography.Text><br />
-                        {user?.sexo && <Typography.Text>Sexo: {user.sexo}</Typography.Text>}<br />
-                        {user?.dataNascimento && (
-                            <Typography.Text>
-                                Nascimento: {formatarData(user.dataNascimento)}
-                            </Typography.Text>
-                        )}
-                    </Col>
-                    <Col>
-                        <Space direction="vertical">
-                            <div><strong>👥 Seguidores:</strong> {user?.followers?.length || 0}</div>
-                            <div><strong>⭐ Favoritos:</strong> {user?.favoritosCount || 0}</div>
-                        </Space>
+        <Box
+            as={motion.div}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            boxShadow="md"
+            bg="white"
+        >
+            <Box p={6}>
+                <Flex direction={{ base: "column", md: "row" }} align="center" justify="space-between">
+                    <HStack spacing={4} align="center">
+                        <Avatar
+                            size="xl"
+                            name={user?.name}
+                            src={user?.avatar}
+                        />
+                        <VStack align="start" spacing={1}>
+                            <Text fontSize="2xl" fontWeight="bold">{user?.name}</Text>
+                            <Text color="gray.500">@{user?.username}</Text>
+                        </VStack>
+                    </HStack>
 
-                        {userIdLogado && !isOwnProfile && user && userIdLogado !== user._id && (
-                            <Space direction="vertical" style={{ marginTop: 12 }}>
-                                <Button
-                                    type={isFollowing ? "default" : "primary"}
-                                    onClick={handleFollowToggle}
-                                >
-                                    {isFollowing ? "➖ Deixar de seguir" : "➕ Seguir"}
-                                </Button>
+                    {!isOwnProfile && userIdLogado && (
+                        <HStack mt={{ base: 4, md: 0 }} spacing={3}>
+                            <Button
+                                colorScheme={isFollowing ? "gray" : "blue"}
+                                variant={isFollowing ? "outline" : "solid"}
+                                onClick={handleFollowToggle}
+                                isLoading={loading}
+                            >
+                                {isFollowing ? "Deixar de Seguir" : "Seguir"}
+                            </Button>
+                            <Button
+                                colorScheme={isFavorited ? "yellow" : "gray"}
+                                variant="outline"
+                                leftIcon={<Icon as={isFavorited ? FaStar : FaRegStar} />}
+                                onClick={handleFavoriteToggle}
+                                isLoading={loading}
+                            >
+                                {isFavorited ? "Favoritado" : "Favoritar"}
+                            </Button>
+                        </HStack>
+                    )}
+                </Flex>
 
-                                <Button
-                                    type={isFavorited ? "primary" : "default"}
-                                    icon={isFavorited ? <StarFilled /> : <StarOutlined />}
-                                    onClick={handleFavoriteToggle}
-                                    loading={loading}
-                                >
-                                    {isFavorited ? "Desfavoritar" : "Favoritar"}
-                                </Button>
-                            </Space>
-                        )}
-                    </Col>
-                </Row>
-            </Card>
-        </motion.div>
+                <Divider my={4} />
+
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+                    <VStack align="start" spacing={2}>
+                        <Text fontWeight="bold">Informações Pessoais</Text>
+                        <HStack>
+                            <Badge colorScheme="blue">Idade</Badge>
+                            <Text>{calcularIdade(user?.birthDate)} anos</Text>
+                        </HStack>
+                        <HStack>
+                            <Badge colorScheme="green">Membro desde</Badge>
+                            <Text>{formatarData(user?.createdAt)}</Text>
+                        </HStack>
+                    </VStack>
+
+                    <VStack align="start" spacing={2}>
+                        <Text fontWeight="bold">Estatísticas</Text>
+                        <HStack>
+                            <Badge colorScheme="purple">Seguidores</Badge>
+                            <Text>{user?.followers?.length || 0}</Text>
+                        </HStack>
+                        <HStack>
+                            <Badge colorScheme="pink">Favoritos</Badge>
+                            <Text>{user?.favoritosCount || 0}</Text>
+                        </HStack>
+                    </VStack>
+                </Grid>
+
+                {user?.bio && (
+                    <>
+                        <Divider my={4} />
+                        <Box>
+                            <Text fontWeight="bold" mb={2}>Biografia</Text>
+                            <Text>{user.bio}</Text>
+                        </Box>
+                    </>
+                )}
+            </Box>
+        </Box>
     );
 };
 

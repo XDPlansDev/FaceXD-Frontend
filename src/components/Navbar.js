@@ -4,11 +4,28 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
-import { Layout, Menu, Button, Dropdown, Avatar, Space, Typography } from "antd";
-import { UserOutlined, SettingOutlined, LogoutOutlined, HomeOutlined } from "@ant-design/icons";
+import {
+  Box,
+  Flex,
+  Button,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Avatar,
+  Text,
+  HStack,
+  Icon,
+  Heading
+} from "@chakra-ui/react";
+import {
+  FaUser,
+  FaCog,
+  FaSignOutAlt,
+  FaHome,
+  FaSearch
+} from "react-icons/fa";
 import SearchUser from "./SearchUser"; // 🆕 Importa o componente de busca
-
-const { Header } = Layout;
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -20,75 +37,72 @@ export default function Navbar() {
   }, []);
   if (!mounted) return null;
 
-  const menuItems = [
-    {
-      key: "profile",
-      label: <Link href={`/profile/${user?.username}`}>Meu Perfil</Link>,
-      icon: <UserOutlined />,
-    },
-    {
-      key: "settings",
-      label: <Link href="/profile/settings">Configurações</Link>,
-      icon: <SettingOutlined />,
-    },
-    {
-      key: "logout",
-      label: "Sair",
-      icon: <LogoutOutlined />,
-      onClick: logout,
-    },
-  ];
-
   return (
-    <Header style={{ background: "#fff", padding: "0 24px", boxShadow: "0 2px 8px #f0f1f2" }}>
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          height: "100%",
-        }}
+    <Box
+      as="header"
+      bg="white"
+      px={6}
+      py={0}
+      boxShadow="0 2px 8px #f0f1f2"
+      position="fixed"
+      width="100%"
+      zIndex={10}
+    >
+      <Flex
+        maxW="1200px"
+        mx="auto"
+        justifyContent="space-between"
+        alignItems="center"
+        height="100%"
       >
         {/* Logo, Feed e Busca */}
-        <Space size="large" align="center">
+        <HStack spacing={6} align="center">
           <Link href="/">
-            <Typography.Title level={4} style={{ margin: 0, color: "#1677ff" }}>
+            <Heading as="h4" size="md" color="blue.500" m={0}>
               Face XD
-            </Typography.Title>
+            </Heading>
           </Link>
           {user && (
             <>
               <Link href="/feed">
-                <Button type="text" icon={<HomeOutlined />}>
+                <Button variant="ghost" leftIcon={<Icon as={FaHome} />}>
                   Feed
                 </Button>
               </Link>
               <SearchUser /> {/* 🆕 Componente de busca aqui */}
             </>
           )}
-        </Space>
+        </HStack>
 
         {/* Perfil / Login */}
         {user ? (
-          <Dropdown menu={{ items: menuItems }} placement="bottomRight">
-            <Space style={{ cursor: "pointer" }}>
-              <Avatar>{user.username?.[0]?.toUpperCase() || "U"}</Avatar>
-              <span style={{ fontWeight: 500 }}>{user.username}</span>
-            </Space>
-          </Dropdown>
+          <Menu>
+            <MenuButton as={Button} variant="ghost" rightIcon={<Avatar size="sm">{user.username?.[0]?.toUpperCase() || "U"}</Avatar>}>
+              <Text fontWeight={500}>{user.username}</Text>
+            </MenuButton>
+            <MenuList>
+              <MenuItem icon={<Icon as={FaUser} />} as={Link} href={`/profile/${user?.username}`}>
+                Meu Perfil
+              </MenuItem>
+              <MenuItem icon={<Icon as={FaCog} />} as={Link} href="/profile/settings">
+                Configurações
+              </MenuItem>
+              <MenuItem icon={<Icon as={FaSignOutAlt} />} onClick={logout}>
+                Sair
+              </MenuItem>
+            </MenuList>
+          </Menu>
         ) : (
-          <Space>
+          <HStack spacing={4}>
             <Link href="/auth/login">
-              <Button type="default">Entrar</Button>
+              <Button variant="outline">Entrar</Button>
             </Link>
             <Link href="/auth/register">
-              <Button type="primary">Registrar</Button>
+              <Button colorScheme="blue">Registrar</Button>
             </Link>
-          </Space>
+          </HStack>
         )}
-      </div>
-    </Header>
+      </Flex>
+    </Box>
   );
 }

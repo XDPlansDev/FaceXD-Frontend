@@ -1,13 +1,21 @@
-// 📄 /pages/index.js (com Ant Design)
+// 📄 /pages/index.js (com Chakra UI)
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Button, Typography, Layout, Row, Col, Space } from "antd";
+import {
+  Box,
+  Button,
+  Heading,
+  Text,
+  Flex,
+  Container,
+  HStack,
+  VStack,
+  Icon
+} from "@chakra-ui/react";
 import { useAuth } from "@/context/AuthContext";
-import { SmileOutlined, ArrowRightOutlined } from "@ant-design/icons";
-
-const { Content, Header } = Layout;
+import { FaArrowRight, FaSmile } from "react-icons/fa";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -21,54 +29,84 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Box minH="100vh">
       {/* Cabeçalho */}
-      <Header style={{ backgroundColor: "#fff", boxShadow: "0 2px 8px #f0f1f2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
-      </Header>
+      <Box
+        as="header"
+        bg="white"
+        boxShadow="0 2px 8px #f0f1f2"
+        py={4}
+        position="fixed"
+        width="100%"
+        zIndex={10}
+      >
+        <Flex justify="center" align="center">
+          <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
+        </Flex>
+      </Box>
 
       {/* Conteúdo principal */}
-      <Content style={{ padding: "50px 20px", backgroundColor: "#f9fafb" }}>
-        <Row justify="center">
-          <Col xs={24} sm={20} md={16} lg={14} style={{ textAlign: "center" }}>
-            <Typography.Title level={1} style={{ fontWeight: 700, marginBottom: 16 }}>
+      <Box
+        as="main"
+        pt="100px"
+        pb="50px"
+        px={5}
+        bg="gray.50"
+      >
+        <Container maxW="container.md">
+          <VStack spacing={8} textAlign="center">
+            <Heading as="h1" size="2xl" fontWeight="bold">
               Face XD: A Rede Social Exclusiva para São Paulo
-            </Typography.Title>
-            <Typography.Paragraph type="secondary" style={{ fontSize: 18 }}>
+            </Heading>
+
+            <Text fontSize="xl" color="gray.600">
               Face XD é uma iniciativa inovadora criada por <strong>David Xavier</strong> para promover a educação e o auto desenvolvimento.<br />
               Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
-            </Typography.Paragraph>
+            </Text>
 
-            <Space size="large" style={{ marginTop: 40 }}>
+            <HStack spacing={6} mt={8}>
               {isLoggedIn && user ? (
                 <>
                   <Link href="/feed" passHref>
-                    <Button type="primary" size="large" icon={<ArrowRightOutlined />}>
+                    <Button
+                      colorScheme="blue"
+                      size="lg"
+                      rightIcon={<Icon as={FaArrowRight} />}
+                    >
                       Ir para o Feed
                     </Button>
                   </Link>
                   <Link href={`/profile/${user.username}`} passHref>
-                    <Button size="large">Meu Perfil</Button>
+                    <Button size="lg" variant="outline">
+                      Meu Perfil
+                    </Button>
                   </Link>
                 </>
               ) : (
                 <>
                   <Link href="/auth/login" passHref>
-                    <Button type="primary" size="large">
+                    <Button
+                      colorScheme="blue"
+                      size="lg"
+                    >
                       Entrar
                     </Button>
                   </Link>
                   <Link href="/auth/register" passHref>
-                    <Button size="large" type="default" icon={<SmileOutlined />}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      leftIcon={<Icon as={FaSmile} />}
+                    >
                       Registrar
                     </Button>
                   </Link>
                 </>
               )}
-            </Space>
-          </Col>
-        </Row>
-      </Content>
-    </Layout>
+            </HStack>
+          </VStack>
+        </Container>
+      </Box>
+    </Box>
   );
 }

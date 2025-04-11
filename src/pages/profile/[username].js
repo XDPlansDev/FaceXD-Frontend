@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Card, Typography, Divider, Tabs, Button, Spin, Row, Space } from "antd";
-import { HeartFilled, HeartOutlined } from "@ant-design/icons";
+import {
+  Box,
+  Text,
+  Divider,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Button,
+  Spinner,
+  Flex,
+  HStack,
+  VStack,
+  useToast
+} from "@chakra-ui/react";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { motion } from "framer-motion";
 import CardPerfil from "./CardPerfil";
-
-const { TabPane } = Tabs;
 
 export default function ProfilePage() {
   const router = useRouter();
   const { username, tab: tabParam } = router.query;
+  const toast = useToast();
 
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -115,58 +129,100 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <Spin fullscreen tip="Carregando perfil..." />;
+  if (loading) {
+    return (
+      <Flex justify="center" align="center" height="100vh">
+        <Spinner size="xl" />
+      </Flex>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Box p={8} textAlign="center">
+        <Text fontSize="xl">Usuário não encontrado</Text>
+      </Box>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 900, margin: "auto", padding: 24 }}>
-      {/* Componente de cabeçalho do perfil */}
-      <CardPerfil
-        user={user}
-        userIdLogado={userIdLogado}
-        isOwnProfile={isOwnProfile}
-        BASE_URL={BASE_URL}
-        setUser={setUser}
-      />
+    <Box maxW="1200px" mx="auto" p={4}>
+      <CardPerfil user={user} isOwnProfile={isOwnProfile} />
 
-      {/* Abas de conteúdo */}
-      <Tabs defaultActiveKey={tabParam === "posts" ? "2" : "1"} style={{ marginTop: 24 }}>
-        <TabPane tab="Sobre" key="1">
-          <Typography.Paragraph>
-            {user?.bio || "Este usuário ainda não escreveu uma bio."}
-          </Typography.Paragraph>
-        </TabPane>
+      <Box mt={8}>
+        <Tabs defaultIndex={tabParam === "favoritos" ? 1 : 0} onChange={(index) => {
+          router.push(`/profile/${username}?tab=${index === 1 ? "favoritos" : "posts"}`);
+        }}>
+          <TabList>
+            <Tab>Posts</Tab>
+            <Tab>Favoritos</Tab>
+          </TabList>
 
-        <TabPane tab="Posts" key="2">
-          {posts.length > 0 ? (
-            posts.map((post) => {
-              const jaCurtiu = post.likes?.includes(userIdLogado);
-              return (
-                <motion.div key={post._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                  <Card style={{ marginBottom: 16 }}>
-                    <Typography.Text>{post.content}</Typography.Text>
-                    <Divider />
-                    <Row justify="space-between">
-                      <Space>
+          <TabPanels>
+            <TabPanel>
+              <VStack spacing={4} align="stretch">
+                {posts.length > 0 ? (
+                  posts.map((post) => (
+                    <Box
+                      key={post._id}
+                      p={4}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      boxShadow="sm"
+                    >
+                      <Text>{post.content}</Text>
+                      <HStack mt={2} spacing={4}>
                         <Button
-                          type="text"
-                          icon={jaCurtiu ? <HeartFilled style={{ color: "red" }} /> : <HeartOutlined />}
+                          size="sm"
+                          variant="ghost"
+                          leftIcon={post.likes?.includes(userIdLogado) ? <FaHeart color="red" /> : <FaRegHeart />}
                           onClick={() => handleLike(post._id)}
-                        />
-                        <Typography.Text>{post.likes?.length || 0} curtidas</Typography.Text>
-                      </Space>
-                      <Typography.Text type="secondary">
-                        {new Date(post.createdAt).toLocaleDateString("pt-BR")}
-                      </Typography.Text>
-                    </Row>
-                  </Card>
-                </motion.div>
-              );
-            })
-          ) : (
-            <Typography.Text type="secondary">Este usuário ainda não publicou nenhum post.</Typography.Text>
-          )}
-        </TabPane>
-      </Tabs>
-    </div>
+                        >
+                          {post.likes?.length || 0}
+                        </Button>
+                      </HStack>
+                    </Box>
+                  ))
+                ) : (
+                  <Text textAlign="center" color="gray.500">Nenhum post encontrado</Text>
+                )}
+              </VStack>
+            </TabPanel>
+
+            <TabPanel>
+              <VStack spacing={4} align="stretch">
+                {posts.filter(post => post.likes?.includes(userIdLogado)).length > 0 ? (
+                  posts
+                    .filter(post => post.likes?.includes(userIdLogado))
+                    .map((post) => (
+                      <Box
+                        key={post._id}
+                        p={4}
+                        borderWidth="1px"
+                        borderRadius="md"
+                        boxShadow="sm"
+                      >
+                        <Text>{post.content}</Text>
+                        <HStack mt={2} spacing={4}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            leftIcon={<FaHeart color="red" />}
+                            onClick={() => handleLike(post._id)}
+                          >
+                            {post.likes?.length || 0}
+                          </Button>
+                        </HStack>
+                      </Box>
+                    ))
+                ) : (
+                  <Text textAlign="center" color="gray.500">Nenhum favorito encontrado</Text>
+                )}
+              </VStack>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
+    </Box>
   );
 }
