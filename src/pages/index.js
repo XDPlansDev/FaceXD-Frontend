@@ -1,18 +1,17 @@
 // 📄 /pages/index.js (com Chakra UI)
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Box,
   Button,
   Heading,
   Text,
-  Flex,
   Container,
   HStack,
   VStack,
-  Icon
+  Icon,
+  useColorModeValue
 } from "@chakra-ui/react";
 import { useAuth } from "@/context/AuthContext";
 import { FaArrowRight, FaSmile } from "react-icons/fa";
@@ -20,6 +19,8 @@ import { FaArrowRight, FaSmile } from "react-icons/fa";
 export default function HomePage() {
   const { user } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const bgColor = useColorModeValue("gray.50", "gray.900");
+  const textColor = useColorModeValue("gray.600", "gray.300");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -29,37 +30,27 @@ export default function HomePage() {
   }, []);
 
   return (
-    <Box minH="100vh">
-      {/* Cabeçalho */}
-      <Box
-        as="header"
-        bg="white"
-        boxShadow="0 2px 8px #f0f1f2"
-        py={4}
-        position="fixed"
-        width="100%"
-        zIndex={10}
-      >
-        <Flex justify="center" align="center">
-          <Image src="/logo.png" alt="Face XD Logo" width={60} height={60} priority />
-        </Flex>
-      </Box>
-
+    <Box minH="100vh" bg={bgColor}>
       {/* Conteúdo principal */}
       <Box
         as="main"
         pt="100px"
         pb="50px"
         px={5}
-        bg="gray.50"
       >
         <Container maxW="container.md">
           <VStack spacing={8} textAlign="center">
-            <Heading as="h1" size="2xl" fontWeight="bold">
+            <Heading
+              as="h1"
+              size="2xl"
+              fontWeight="bold"
+              bgGradient="linear(to-r, blue.400, purple.500)"
+              bgClip="text"
+            >
               Face XD: A Rede Social Exclusiva para São Paulo
             </Heading>
 
-            <Text fontSize="xl" color="gray.600">
+            <Text fontSize="xl" color={textColor}>
               Face XD é uma iniciativa inovadora criada por <strong>David Xavier</strong> para promover a educação e o auto desenvolvimento.<br />
               Conecte-se com pessoas da sua cidade e cresça pessoal e profissionalmente.
             </Text>
@@ -72,12 +63,27 @@ export default function HomePage() {
                       colorScheme="blue"
                       size="lg"
                       rightIcon={<Icon as={FaArrowRight} />}
+                      bgGradient="linear(to-r, blue.400, purple.500)"
+                      _hover={{
+                        bgGradient: "linear(to-r, blue.500, purple.600)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "lg"
+                      }}
+                      transition="all 0.2s"
                     >
                       Ir para o Feed
                     </Button>
                   </Link>
                   <Link href={`/profile/${user.username}`} passHref>
-                    <Button size="lg" variant="outline">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      _hover={{
+                        transform: "translateY(-2px)",
+                        boxShadow: "md"
+                      }}
+                      transition="all 0.2s"
+                    >
                       Meu Perfil
                     </Button>
                   </Link>
@@ -88,6 +94,13 @@ export default function HomePage() {
                     <Button
                       colorScheme="blue"
                       size="lg"
+                      bgGradient="linear(to-r, blue.400, purple.500)"
+                      _hover={{
+                        bgGradient: "linear(to-r, blue.500, purple.600)",
+                        transform: "translateY(-2px)",
+                        boxShadow: "lg"
+                      }}
+                      transition="all 0.2s"
                     >
                       Entrar
                     </Button>
@@ -97,6 +110,11 @@ export default function HomePage() {
                       size="lg"
                       variant="outline"
                       leftIcon={<Icon as={FaSmile} />}
+                      _hover={{
+                        transform: "translateY(-2px)",
+                        boxShadow: "md"
+                      }}
+                      transition="all 0.2s"
                     >
                       Registrar
                     </Button>
