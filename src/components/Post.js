@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
     Box,
     VStack,
@@ -16,7 +16,13 @@ import {
     useColorMode,
     Divider,
     Collapse,
-    Badge
+    Badge,
+    AlertDialog,
+    AlertDialogBody,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogContent,
+    AlertDialogOverlay
 } from "@chakra-ui/react";
 import { FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaTrash, FaEdit } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
@@ -29,6 +35,8 @@ export default function Post({ post, onDelete, onEdit }) {
     const [likes, setLikes] = useState(post.likes || []);
     const [likedByUser, setLikedByUser] = useState(post.likedByUser || false);
     const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const cancelRef = useRef();
     const { user } = useAuth();
     const toast = useToast();
     const { colorMode } = useColorMode();
@@ -68,6 +76,36 @@ export default function Post({ post, onDelete, onEdit }) {
 
     const handleCommentDeleted = () => {
         setCommentCount(prev => Math.max(0, prev - 1));
+    };
+
+    const handleDelete = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${API_URL}/api/posts/${post._id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!response.ok) throw new Error("Erro ao deletar post");
+
+            onDelete?.(post._id);
+            setIsDeleteAlertOpen(false);
+            toast({
+                title: "Post deletado com sucesso",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            console.error("Erro ao deletar post:", error);
+            toast({
+                title: "Erro ao deletar post",
+                description: "Não foi possível deletar este post",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     return (
@@ -114,7 +152,7 @@ export default function Post({ post, onDelete, onEdit }) {
                             <MenuItem
                                 icon={<FaTrash />}
                                 color="red.500"
-                                onClick={() => onDelete(post._id)}
+                                onClick={() => setIsDeleteAlertOpen(true)}
                             >
                                 Deletar
                             </MenuItem>
@@ -171,6 +209,34 @@ export default function Post({ post, onDelete, onEdit }) {
                     />
                 </Box>
             </Collapse>
+
+            {/* Diálogo de confirmação de exclusão */}
+            <AlertDialog
+                isOpen={isDeleteAlertOpen}
+                leastDestructiveRef={cancelRef}
+                onClose={() => setIsDeleteAlertOpen(false)}
+            >
+                <AlertDialogOverlay>
+                    <AlertDialogContent>
+                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                            Deletar Post
+                        </AlertDialogHeader>
+
+                        <AlertDialogBody>
+                            Tem certeza que deseja deletar este post? Esta ação não pode ser desfeita.
+                        </AlertDialogBody>
+
+                        <AlertDialogFooter>
+                            <Button ref={cancelRef} onClick={() => setIsDeleteAlertOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button colorScheme="red" onClick={handleDelete} ml={3}>
+                                Deletar
+                            </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialogOverlay>
+            </AlertDialog>
         </Box>
     );
 } 

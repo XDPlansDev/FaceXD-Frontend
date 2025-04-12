@@ -81,7 +81,7 @@ export default function Comments({ postId }) {
 
         try {
             setSubmitting(true);
-            await api.post(`/comments/${postId}`, { content: newComment });
+            const response = await api.post(`/api/comments/${postId}`, { content: newComment });
             setNewComment("");
             await fetchComments();
             toast({

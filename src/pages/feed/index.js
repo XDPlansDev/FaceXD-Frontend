@@ -1,6 +1,6 @@
 // 📄 /pages/feed.js
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Input,
@@ -31,7 +31,10 @@ import {
   CardHeader,
   CardFooter,
   Stack,
-  Badge
+  Badge,
+  Center,
+  useColorMode,
+  Container
 } from "@chakra-ui/react";
 import {
   FaHeart,
@@ -41,6 +44,8 @@ import {
   FaUser,
   FaTrash
 } from "react-icons/fa";
+import { useRouter } from "next/router";
+import { useAuth } from "@/context/AuthContext";
 import imageCompression from "browser-image-compression";
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -49,9 +54,13 @@ import PostCard from "@/components/PostCard";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function FeedPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { colorMode } = useColorMode();
   const [posts, setPosts] = useState([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
@@ -71,28 +80,37 @@ export default function FeedPage() {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // 🔄 Carrega os posts
-  useEffect(() => {
-    console.log("🟡 CONSULTANDO POSTS...");
-    fetchPosts();
-  }, []);
+  // Memoize a função para evitar recriações desnecessárias
+  const checkAuthAndFetchPosts = useCallback(async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-  const fetchPosts = async () => {
-    setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
+
       const res = await fetch(`${API_URL}/api/posts/feed`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      if (!res.ok) {
+        throw new Error("Erro ao carregar posts");
+      }
+
       const data = await res.json();
-      console.log("🟢 POSTS RECEBIDOS:", data);
-      setPosts(data || []);
+      setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("🔴 ERRO AO CONSULTAR POSTS:", err);
+      setError(err.message);
       toast({
         title: "Erro ao carregar posts",
+        description: err.message,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -100,71 +118,100 @@ export default function FeedPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, router, toast]);
 
-  // 📬 Cria um novo post
-  const handleCreatePost = async () => {
-    if (!content.trim()) {
-      toast({
-        title: "Adicione um texto para publicar",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
+  // Efeito para carregar posts apenas quando necessário
+  useEffect(() => {
+    let isMounted = true;
 
-    console.log("📨 ENVIANDO NOVO POST:", content);
+    const fetchData = async () => {
+      if (isMounted && user) {
+        setLoading(true);
+        await checkAuthAndFetchPosts();
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [checkAuthAndFetchPosts]);
+
+  const handleCreatePost = async (postData) => {
     try {
       const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("content", content);
-
-      if (imageUrl) {
-        formData.append("image", imageUrl);
-      }
+      if (!token) throw new Error("Token não encontrado");
 
       const res = await fetch(`${API_URL}/api/posts`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: JSON.stringify(postData),
       });
 
-      if (res.ok) {
-        const newPost = await res.json();
-        console.log("✅ POST CRIADO:", newPost);
-        setPosts([newPost, ...posts]);
-        setContent("");
-        setImageUrl(null);
-        setImagePreviewUrl(null);
-        toast({
-          title: "Post criado com sucesso!",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        const error = await res.json();
-        console.error("🔴 ERRO AO CRIAR POST:", error);
-        toast({
-          title: "Erro ao criar post",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+      if (!res.ok) throw new Error("Erro ao criar post");
+
+      const newPost = await res.json();
+      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setContent("");
+
+      toast({
+        title: "Post criado com sucesso",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (err) {
       console.error("🔴 ERRO AO CRIAR POST:", err);
       toast({
         title: "Erro ao criar post",
+        description: err.message,
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
   };
+
+  const handleDeletePost = useCallback(async (postId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
+
+      const res = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao deletar post");
+      }
+
+      setPosts(prevPosts => prevPosts.filter(post => post._id !== postId));
+      toast({
+        title: "Post deletado com sucesso",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("🔴 ERRO AO DELETAR POST:", err);
+      toast({
+        title: "Erro ao deletar post",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [toast]);
 
   // ❤️ Curtir um post
   const handleLike = async (postId) => {
@@ -336,78 +383,126 @@ export default function FeedPage() {
     }
   };
 
-  const handleDeletePost = (postId) => {
-    setPosts(posts.filter(post => post._id !== postId));
+  const handleEditPost = async (postId, newContent) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
+
+      const res = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao editar post");
+      }
+
+      const updatedPost = await res.json();
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post._id === postId ? updatedPost : post
+        )
+      );
+
+      toast({
+        title: "Post editado com sucesso",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (err) {
+      console.error("🔴 ERRO AO EDITAR POST:", err);
+      toast({
+        title: "Erro ao editar post",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <Box maxW="2xl" mx="auto" p={6}>
-      <Heading as="h2" size="lg" mb={8}>
-        Feed
-      </Heading>
-
-      {/* Formulário para novo post */}
-      <Card mb={8} shadow="sm">
-        <CardBody>
-          <Textarea
-            placeholder="O que você está pensando hoje?"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            minH="100px"
-            mb={6}
-            resize="vertical"
-          />
-
-          <VStack spacing={4} align="stretch">
-            {imageUrl && (
-              <Box position="relative" display="inline-block">
-                <Image
-                  src={croppedImageUrl}
-                  alt="Preview"
-                  w="70px"
-                  h="70px"
-                  objectFit="cover"
-                  borderRadius="lg"
+    <Box minH="100vh" bg={colorMode === "light" ? "gray.50" : "gray.800"}>
+      <Container maxW="container.md" py={8}>
+        <VStack spacing={6} align="stretch">
+          <Box
+            p={6}
+            borderWidth="1px"
+            borderRadius="lg"
+            bg={colorMode === "light" ? "white" : "gray.700"}
+          >
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (content.trim()) {
+                handleCreatePost({ content });
+              }
+            }}>
+              <VStack spacing={4}>
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="O que você está pensando?"
+                  resize="none"
                 />
-                <IconButton
-                  icon={<FaTrash />}
-                  colorScheme="red"
-                  variant="ghost"
-                  size="sm"
-                  position="absolute"
-                  top="-2"
-                  right="-2"
-                  onClick={handleRemoveImage}
-                  aria-label="Remover imagem"
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  isDisabled={!content.trim()}
+                  alignSelf="flex-end"
+                >
+                  Publicar
+                </Button>
+              </VStack>
+            </form>
+          </Box>
+
+          {loading ? (
+            <Center py={10}>
+              <Spinner size="xl" />
+            </Center>
+          ) : error ? (
+            <Center py={10} flexDir="column" gap={4}>
+              <Text color="red.500">{error}</Text>
+              <Button
+                onClick={() => {
+                  setError(null);
+                  checkAuthAndFetchPosts();
+                }}
+              >
+                Tentar novamente
+              </Button>
+            </Center>
+          ) : posts.length === 0 ? (
+            <Center py={10}>
+              <Text color="gray.500">Nenhum post encontrado</Text>
+            </Center>
+          ) : (
+            <VStack spacing={4} align="stretch">
+              {posts.map(post => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  onDelete={handleDeletePost}
+                  onEdit={handleEditPost}
                 />
-              </Box>
-            )}
+              ))}
+            </VStack>
+          )}
+        </VStack>
+      </Container>
 
-            <Flex justify="space-between" align="center">
-              <Button
-                leftIcon={<FaImage />}
-                isDisabled={true}
-                opacity={0.5}
-                cursor="not-allowed"
-                variant="outline"
-              >
-                Adicionar Imagem (Em breve)
-              </Button>
-
-              <Button
-                colorScheme="blue"
-                onClick={handleCreatePost}
-                isDisabled={!content.trim()}
-                size="lg"
-              >
-                Publicar
-              </Button>
-            </Flex>
-          </VStack>
-        </CardBody>
-      </Card>
-
-      {/* Modal de Preview da Imagem */}
+      {/* Modal de recorte de imagem */}
       <Modal isOpen={isOpen} onClose={handleCancelPreview} size="xl">
         <ModalOverlay />
         <ModalContent>
@@ -441,29 +536,6 @@ export default function FeedPage() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-
-      {/* Lista de posts */}
-      {loading ? (
-        <Flex justify="center" my={8}>
-          <Spinner size="xl" />
-        </Flex>
-      ) : posts.length === 0 ? (
-        <Card textAlign="center" py={8}>
-          <Text color="gray.500">
-            Nenhum post ainda. Seja o primeiro a publicar!
-          </Text>
-        </Card>
-      ) : (
-        <VStack spacing={6} align="stretch">
-          {posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onDelete={handleDeletePost}
-            />
-          ))}
-        </VStack>
-      )}
     </Box>
   );
 }

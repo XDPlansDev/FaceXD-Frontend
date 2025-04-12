@@ -113,7 +113,7 @@ export default function PostDetails() {
         if (!newComment.trim()) return;
 
         try {
-            const response = await api.post(`/posts/${id}/comment`, {
+            const response = await api.post(`/api/comments/${id}`, {
                 content: newComment
             });
             setComments(prev => [...prev, response.data]);
