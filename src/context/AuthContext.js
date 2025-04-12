@@ -63,11 +63,23 @@ export function AuthProvider({ children }) {
   };
 
   const checkUsername = async (username) => {
+    console.log("Verificando username:", username);
     try {
-      await api.get(`/api/auth/check-username/${username}`);
-      return { available: true };
+      // Usando a rota original
+      const response = await api.get(`/api/auth/check-username/${username}`);
+      console.log("Resposta da API:", response.data);
+      return response.data;
     } catch (error) {
-      return { available: false };
+      console.error("Erro ao verificar nome de usuário:", error);
+      console.error("Detalhes do erro:", error.response?.data);
+
+      // Se o erro for 400 (Bad Request), provavelmente é um username inválido
+      if (error.response?.status === 400) {
+        return { available: false };
+      }
+
+      // Para outros erros, assumimos que o username está disponível
+      return { available: true };
     }
   };
 

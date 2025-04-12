@@ -51,13 +51,21 @@ export default function FriendsPage() {
     const fetchFriends = async () => {
         try {
             setLoading(true);
-            const [userResponse, receivedRequestsResponse] = await Promise.all([
+            const [userResponse, receivedRequestsResponse, sentRequestsResponse] = await Promise.all([
                 api.get("/api/users/me"),
-                api.get("/api/users/friend-requests")
+                api.get("/api/users/friend-requests"),
+                api.get("/api/users/sent-requests")
             ]);
+
+            console.log('Dados recebidos:', {
+                friends: userResponse.data.friends,
+                received: receivedRequestsResponse.data,
+                sent: sentRequestsResponse.data
+            });
 
             setFriends(userResponse.data.friends || []);
             setReceivedRequests(receivedRequestsResponse.data || []);
+            setSentRequests(sentRequestsResponse.data || []);
             setLoading(false);
         } catch (error) {
             console.error("Erro ao buscar amigos:", error);

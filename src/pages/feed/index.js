@@ -44,6 +44,7 @@ import {
 import imageCompression from "browser-image-compression";
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import PostCard from "@/components/PostCard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -119,6 +120,10 @@ export default function FeedPage() {
       const formData = new FormData();
       formData.append("content", content);
 
+      if (imageUrl) {
+        formData.append("image", imageUrl);
+      }
+
       const res = await fetch(`${API_URL}/api/posts`, {
         method: "POST",
         headers: {
@@ -132,6 +137,8 @@ export default function FeedPage() {
         console.log("✅ POST CRIADO:", newPost);
         setPosts([newPost, ...posts]);
         setContent("");
+        setImageUrl(null);
+        setImagePreviewUrl(null);
         toast({
           title: "Post criado com sucesso!",
           status: "success",
@@ -260,12 +267,14 @@ export default function FeedPage() {
     );
 
     return new Promise((resolve) => {
-      canvas.toBlob(blob => {
+      canvas.toBlob((blob) => {
         if (!blob) {
           console.error('Canvas is empty');
           return;
         }
         blob.name = 'cropped.jpeg';
+        window.URL.revokeObjectURL(croppedImageUrl);
+        setCroppedImageUrl(window.URL.createObjectURL(blob));
         resolve(blob);
       }, 'image/jpeg', 1);
     });
@@ -286,7 +295,7 @@ export default function FeedPage() {
       const compressedCroppedImage = await imageCompression(croppedImage, options);
 
       setImageUrl(compressedCroppedImage);
-      setCroppedImageUrl(URL.createObjectURL(compressedCroppedImage));
+      setImagePreviewUrl(URL.createObjectURL(compressedCroppedImage));
       onClose();
       toast({
         title: "Imagem confirmada com sucesso!",
@@ -325,6 +334,10 @@ export default function FeedPage() {
       URL.revokeObjectURL(croppedImageUrl);
       setCroppedImageUrl(null);
     }
+  };
+
+  const handleDeletePost = (postId) => {
+    setPosts(posts.filter(post => post._id !== postId));
   };
 
   return (
@@ -443,64 +456,11 @@ export default function FeedPage() {
       ) : (
         <VStack spacing={6} align="stretch">
           {posts.map((post) => (
-            <Card key={post._id} mb={6} shadow="sm" _hover={{ shadow: "md" }} transition="all 0.2s">
-              <CardHeader>
-                <Flex align="center">
-                  <Avatar
-                    src={post.userId?.avatar}
-                    icon={<FaUser />}
-                    size="lg"
-                    mr={3}
-                  />
-                  <Box>
-                    <Text fontWeight="medium">{post.userId?.nome || "Anônimo"}</Text>
-                    <Text fontSize="sm" color="gray.500">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </Text>
-                  </Box>
-                </Flex>
-              </CardHeader>
-              <CardBody>
-                <Text mb={4}>{post.content}</Text>
-                {post.image && (
-                  <Box mt={4}>
-                    <Image
-                      src={post.image}
-                      alt="Post"
-                      maxH="24rem"
-                      w="full"
-                      objectFit="contain"
-                      borderRadius="lg"
-                    />
-                  </Box>
-                )}
-              </CardBody>
-              <CardFooter>
-                <HStack spacing={4}>
-                  <Tooltip label="Curtir">
-                    <Button
-                      variant="ghost"
-                      leftIcon={post.likes?.includes(localStorage.getItem("userId")) ?
-                        <FaHeart color="red" /> :
-                        <FaRegHeart />
-                      }
-                      onClick={() => handleLike(post._id)}
-                    >
-                      {post.likes?.length || 0}
-                    </Button>
-                  </Tooltip>
-                  <Tooltip label="Comentar">
-                    <Button
-                      variant="ghost"
-                      leftIcon={<FaComment />}
-                      isDisabled
-                    >
-                      {post.comments?.length || 0}
-                    </Button>
-                  </Tooltip>
-                </HStack>
-              </CardFooter>
-            </Card>
+            <PostCard
+              key={post._id}
+              post={post}
+              onDelete={handleDeletePost}
+            />
           ))}
         </VStack>
       )}

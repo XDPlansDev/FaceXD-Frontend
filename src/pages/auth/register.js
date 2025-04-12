@@ -18,22 +18,30 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
-  FormErrorMessage
+  FormErrorMessage,
+  Select,
+  HStack
 } from "@chakra-ui/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Head from "next/head";
+import api from "@/services/api";
 
 export default function Register() {
   const [formData, setFormData] = useState({
     nome: "",
+    sobrenome: "",
     username: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    sexo: "",
+    dataNascimento: "",
+    cep: ""
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const { register, checkUsername } = useAuth();
   const router = useRouter();
   const toast = useToast();
@@ -48,8 +56,18 @@ export default function Register() {
     handleChange(e);
 
     if (username.length >= 3) {
-      const result = await checkUsername(username);
-      setUsernameAvailable(result.available);
+      setCheckingUsername(true);
+      try {
+        const result = await checkUsername(username);
+        setUsernameAvailable(result.available);
+      } catch (error) {
+        console.error("Erro ao verificar nome de usuário:", error);
+        setUsernameAvailable(true);
+      } finally {
+        setCheckingUsername(false);
+      }
+    } else {
+      setUsernameAvailable(true);
     }
   };
 
@@ -71,6 +89,39 @@ export default function Register() {
       toast({
         title: "Erro",
         description: "Este nome de usuário já está em uso",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!formData.sexo) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione seu sexo",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!formData.dataNascimento) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe sua data de nascimento",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!formData.cep) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe seu CEP",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -114,6 +165,59 @@ export default function Register() {
     }
   };
 
+  const testConnection = async () => {
+    try {
+      const response = await api.get("/api/auth/test");
+      toast({
+        title: "Conexão estabelecida",
+        description: response.data.message,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro na conexão",
+        description: "Não foi possível conectar ao backend",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const testUsernameCheck = async () => {
+    if (!formData.username) {
+      toast({
+        title: "Erro",
+        description: "Digite um nome de usuário para testar",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await api.get(`/api/auth/test-username/${formData.username}`);
+      toast({
+        title: "Teste de username",
+        description: `Username: ${response.data.username}, Existe: ${response.data.exists}, Disponível: ${response.data.available}`,
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao testar username",
+        description: "Não foi possível verificar o username",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <>
       <Head>
@@ -127,6 +231,9 @@ export default function Register() {
             <Text color="gray.500" mt={2}>
               Comece sua jornada conosco
             </Text>
+            <Button size="sm" colorScheme="teal" mt={2} onClick={testConnection}>
+              Testar conexão com o backend
+            </Button>
           </Box>
 
           <Box
@@ -138,15 +245,27 @@ export default function Register() {
             boxShadow="lg"
           >
             <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Nome completo</FormLabel>
-                <Input
-                  name="nome"
-                  value={formData.nome}
-                  onChange={handleChange}
-                  placeholder="Seu nome completo"
-                />
-              </FormControl>
+              <HStack spacing={4} width="100%">
+                <FormControl isRequired>
+                  <FormLabel>Nome</FormLabel>
+                  <Input
+                    name="nome"
+                    value={formData.nome}
+                    onChange={handleChange}
+                    placeholder="Seu nome"
+                  />
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Sobrenome</FormLabel>
+                  <Input
+                    name="sobrenome"
+                    value={formData.sobrenome}
+                    onChange={handleChange}
+                    placeholder="Seu sobrenome"
+                  />
+                </FormControl>
+              </HStack>
 
               <FormControl isRequired isInvalid={!usernameAvailable}>
                 <FormLabel>Nome de usuário</FormLabel>
@@ -156,11 +275,17 @@ export default function Register() {
                   onChange={handleUsernameChange}
                   placeholder="Seu nome de usuário"
                 />
-                {!usernameAvailable && (
+                {checkingUsername && (
+                  <Text fontSize="sm" color="gray.500">Verificando disponibilidade...</Text>
+                )}
+                {!usernameAvailable && !checkingUsername && (
                   <FormErrorMessage>
                     Este nome de usuário já está em uso
                   </FormErrorMessage>
                 )}
+                <Button size="xs" colorScheme="teal" mt={2} onClick={testUsernameCheck}>
+                  Testar verificação de username
+                </Button>
               </FormControl>
 
               <FormControl isRequired>
@@ -171,6 +296,42 @@ export default function Register() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Seu email"
+                />
+              </FormControl>
+
+              <HStack spacing={4} width="100%">
+                <FormControl isRequired>
+                  <FormLabel>Sexo</FormLabel>
+                  <Select
+                    name="sexo"
+                    value={formData.sexo}
+                    onChange={handleChange}
+                    placeholder="Selecione"
+                  >
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="O">Outro</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Data de nascimento</FormLabel>
+                  <Input
+                    name="dataNascimento"
+                    type="date"
+                    value={formData.dataNascimento}
+                    onChange={handleChange}
+                  />
+                </FormControl>
+              </HStack>
+
+              <FormControl isRequired>
+                <FormLabel>CEP</FormLabel>
+                <Input
+                  name="cep"
+                  value={formData.cep}
+                  onChange={handleChange}
+                  placeholder="Seu CEP"
                 />
               </FormControl>
 
