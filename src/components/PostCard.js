@@ -13,10 +13,10 @@ import {
   MenuList,
   MenuItem,
   useColorMode,
-  Link
 } from "@chakra-ui/react";
 import { FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisH } from "react-icons/fa";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
 
@@ -106,19 +106,19 @@ export default function PostCard({ post, onDelete }) {
     }
   };
 
-  const navigateToProfile = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (post?.author?.username) {
-      router.push(`/profile/${post.author.username}`);
-    }
-  };
-
-  const navigateToPost = (e) => {
+  const handleShare = (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (post?._id) {
-      router.push(`/posts/${post._id}`);
+      const postUrl = `${window.location.origin}/posts/${post._id}`;
+      navigator.clipboard.writeText(postUrl);
+      toast({
+        title: "Link copiado!",
+        description: "Link do post copiado para a área de transferência",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
     }
   };
 
@@ -129,9 +129,8 @@ export default function PostCard({ post, onDelete }) {
   // Console log para debug
   console.log("Post data:", {
     id: post._id,
-    author: post.author,
     userId: post.userId,
-    username: post.author?.username || post.userId?.username
+    username: post.userId?.username
   });
 
   return (
@@ -146,44 +145,58 @@ export default function PostCard({ post, onDelete }) {
         <HStack spacing={4} mb={4}>
           <Avatar
             size="sm"
-            name={post.author?.nome || post.userId?.nome || 'Usuário'}
-            src={post.author?.avatar || post.userId?.avatar}
+            name={post.userId?.nome || 'Usuário'}
+            src={post.userId?.avatar}
             cursor="pointer"
-            onClick={navigateToProfile}
+            onClick={() => router.push(`/profile/${post.userId?.username}`)}
           />
           <VStack align="start" spacing={0} flex={1}>
             <Text
               fontWeight="bold"
               cursor="pointer"
-              onClick={navigateToProfile}
+              onClick={() => router.push(`/profile/${post.userId?.username}`)}
             >
-              {getFirstName(post.author?.nome || post.userId?.nome)}
+              {getFirstName(post.userId?.nome)}
             </Text>
             <HStack spacing={2}>
-              <Link
-                onClick={navigateToProfile}
-                fontSize="sm"
-                color="gray.500"
-                _hover={{ textDecoration: "underline", color: "blue.500" }}
-                cursor="pointer"
-              >
-                @{post.author?.username || post.userId?.username || 'usuario'}
+              <Link href={`/profile/${post.userId?.username}`} passHref>
+                <Text
+                  as="a"
+                  fontSize="sm"
+                  color="gray.500"
+                  _hover={{ textDecoration: "underline", color: "blue.500" }}
+                  cursor="pointer"
+                >
+                  @{post.userId?.username}
+                </Text>
               </Link>
               <Text fontSize="sm" color="gray.500">•</Text>
               <Text fontSize="sm" color="gray.500">{date}</Text>
               <Text fontSize="sm" color="gray.500">•</Text>
               <Link
-                onClick={navigateToPost}
-                fontSize="sm"
-                color="blue.500"
-                _hover={{ textDecoration: "underline" }}
-                cursor="pointer"
+                href={{
+                  pathname: '/[username]/posts/[id]',
+                  query: {
+                    username: post.userId?.username,
+                    id: post._id
+                  }
+                }}
+                as={`/${post.userId?.username}/posts/${post._id}`}
+                passHref
               >
-                {time}
+                <Text
+                  as="a"
+                  fontSize="sm"
+                  color="blue.500"
+                  _hover={{ textDecoration: "underline" }}
+                  cursor="pointer"
+                >
+                  {time}
+                </Text>
               </Link>
             </HStack>
           </VStack>
-          {user?._id === (post.author?._id || post.userId?._id) && (
+          {user?._id === post.userId?._id && (
             <Menu>
               <MenuButton
                 as={IconButton}
@@ -198,63 +211,47 @@ export default function PostCard({ post, onDelete }) {
           )}
         </HStack>
 
-        <Box
-          onClick={navigateToPost}
-          cursor="pointer"
-          _hover={{ opacity: 0.8 }}
-        >
+        <Box onClick={(e) => e.preventDefault()}>
           <Text mb={4}>{post.content}</Text>
-
           {post.image && (
             <Image
               src={post.image}
               alt="Post image"
               borderRadius="md"
               mb={4}
-              maxH="500px"
+              maxH="400px"
               objectFit="cover"
+              w="100%"
             />
           )}
         </Box>
 
-        <HStack spacing={4}>
-          <HStack>
+        <HStack spacing={4} w="100%" pt={2}>
+          <HStack spacing={1} onClick={handleLike} cursor="pointer">
             <IconButton
-              icon={isLiked ? <FaHeart color="red" /> : <FaRegHeart />}
+              icon={isLiked ? <FaHeart color="#E53E3E" /> : <FaRegHeart />}
               variant="ghost"
-              onClick={handleLike}
-              aria-label="Curtir"
+              size="sm"
+              aria-label="Like"
             />
             <Text>{likeCount}</Text>
           </HStack>
-          <HStack>
+          <HStack spacing={1}>
             <IconButton
               icon={<FaComment />}
               variant="ghost"
-              onClick={navigateToPost}
-              aria-label="Comentar"
+              size="sm"
+              aria-label="Comment"
             />
             <Text>{post.comments?.length || 0}</Text>
           </HStack>
           <IconButton
             icon={<FaShare />}
             variant="ghost"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (post?._id) {
-                const postUrl = `${window.location.origin}/posts/${post._id}`;
-                navigator.clipboard.writeText(postUrl);
-                toast({
-                  title: "Link copiado!",
-                  description: "Link do post copiado para a área de transferência",
-                  status: "success",
-                  duration: 2000,
-                  isClosable: true,
-                });
-              }
-            }}
-            aria-label="Compartilhar"
+            size="sm"
+            aria-label="Share"
+            onClick={handleShare}
+            ml="auto"
           />
         </HStack>
       </Box>

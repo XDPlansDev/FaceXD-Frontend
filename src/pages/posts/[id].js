@@ -2,6 +2,8 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import Link from 'next/link';
+import { useToast } from '@chakra-ui/react';
 
 export default function PostDetails() {
     const router = useRouter();
@@ -11,46 +13,117 @@ export default function PostDetails() {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const toast = useToast();
 
     useEffect(() => {
-        if (id) {
-            fetchPostDetails();
-        }
-    }, [id]);
+        if (!id) return;
+
+        console.log('🔍 ID do post:', id);
+        console.log('📍 Query completa:', router.query);
+
+        fetchPostDetails();
+    }, [id, router.query]);
 
     const fetchPostDetails = async () => {
         try {
+            setLoading(true);
+            console.log('📡 Fazendo requisição para:', `/posts/${id}`);
+
             const response = await api.get(`/posts/${id}`);
+            console.log('📦 Resposta do servidor:', response.data);
+
+            if (!response.data) {
+                console.error('❌ Post não encontrado');
+                setError('Post não encontrado');
+                return;
+            }
+
             setPost(response.data);
             setComments(response.data.comments || []);
+            setError(null);
         } catch (error) {
-            console.error('Erro ao carregar detalhes do post:', error);
+            console.error('❌ Erro ao carregar post:', error.response || error);
+            const errorMessage = error.response?.data?.message || 'Não foi possível carregar o post';
+            console.error('Mensagem de erro:', errorMessage);
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
     const handleLike = async () => {
+        if (!user) {
+            toast({
+                title: "Erro",
+                description: "Você precisa estar logado para curtir posts",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
         try {
-            const response = await api.post(`/posts/${id}/like`);
-            setPost(response.data);
+            const response = await api.put(`/posts/${id}/like`);
+            setPost(prev => ({
+                ...prev,
+                likes: response.data.likes
+            }));
+            toast({
+                title: response.data.likedByUser ? "Post curtido!" : "Curtida removida",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error('Erro ao curtir o post:', error);
+            toast({
+                title: "Erro",
+                description: "Não foi possível curtir o post",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
         }
     };
 
     const handleComment = async (e) => {
         e.preventDefault();
+        if (!user) {
+            toast({
+                title: "Erro",
+                description: "Você precisa estar logado para comentar",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
         if (!newComment.trim()) return;
 
         try {
-            const response = await api.post(`/posts/${id}/comments`, {
+            const response = await api.post(`/posts/${id}/comment`, {
                 content: newComment
             });
-            setComments([...comments, response.data]);
+            setComments(prev => [...prev, response.data]);
             setNewComment('');
+            toast({
+                title: "Comentário adicionado!",
+                status: "success",
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error('Erro ao adicionar comentário:', error);
+            toast({
+                title: "Erro",
+                description: "Não foi possível adicionar o comentário",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
         }
     };
 
@@ -69,8 +142,32 @@ export default function PostDetails() {
         return <div className="flex justify-center items-center min-h-screen">Carregando...</div>;
     }
 
+    if (error) {
+        return (
+            <div className="flex justify-center items-center min-h-screen flex-col">
+                <p className="text-red-500 mb-4">{error}</p>
+                <button
+                    onClick={() => router.push('/feed')}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                    Voltar para o Feed
+                </button>
+            </div>
+        );
+    }
+
     if (!post) {
-        return <div className="flex justify-center items-center min-h-screen">Post não encontrado</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen flex-col">
+                <p className="text-xl mb-4">Post não encontrado</p>
+                <button
+                    onClick={() => router.push('/feed')}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                    Voltar para o Feed
+                </button>
+            </div>
+        );
     }
 
     const { date, time } = formatDateTime(post.createdAt);
@@ -80,21 +177,22 @@ export default function PostDetails() {
             <div className="bg-white rounded-lg shadow-md p-6 mb-4">
                 <div className="flex items-center mb-4">
                     <img
-                        src={post.author.avatar || '/default-avatar.png'}
-                        alt={post.author.name}
+                        src={post.userId?.avatar || '/default-avatar.png'}
+                        alt={post.userId?.nome}
                         className="w-10 h-10 rounded-full mr-3"
                     />
                     <div>
-                        <h2 className="font-semibold">{post.author.name}</h2>
+                        <h2 className="font-semibold">{post.userId?.nome}</h2>
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <Link href={`/profile/${post.userId?.username}`}>
+                                <a className="text-blue-500 hover:underline">
+                                    @{post.userId?.username}
+                                </a>
+                            </Link>
+                            <span>•</span>
                             <span>{date}</span>
                             <span>•</span>
-                            <a
-                                href={`/posts/${post._id}`}
-                                className="text-blue-500 hover:underline"
-                            >
-                                {time}
-                            </a>
+                            <span className="text-blue-500">{time}</span>
                         </div>
                     </div>
                 </div>
@@ -147,12 +245,17 @@ export default function PostDetails() {
                         <div key={comment._id} className="border-b pb-4">
                             <div className="flex items-center mb-2">
                                 <img
-                                    src={comment.author.avatar || '/default-avatar.png'}
-                                    alt={comment.author.name}
+                                    src={comment.userId?.avatar || '/default-avatar.png'}
+                                    alt={comment.userId?.nome}
                                     className="w-8 h-8 rounded-full mr-2"
                                 />
                                 <div>
-                                    <p className="font-semibold">{comment.author.name}</p>
+                                    <p className="font-semibold">{comment.userId?.nome}</p>
+                                    <Link href={`/profile/${comment.userId?.username}`}>
+                                        <a className="text-sm text-blue-500 hover:underline">
+                                            @{comment.userId?.username}
+                                        </a>
+                                    </Link>
                                     <p className="text-gray-500 text-sm">
                                         {new Date(comment.createdAt).toLocaleDateString()}
                                     </p>
