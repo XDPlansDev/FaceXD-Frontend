@@ -1,8 +1,9 @@
 // context/AuthContext.js
 import { createContext, useContext, useState, useEffect } from "react";
 import { Spinner, Center, Box } from "@chakra-ui/react";
+import api from "@/services/api";
 
-const AuthContext = createContext();
+const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -11,60 +12,67 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Token inválido");
-          return res.json();
+      api.get("/api/auth/me")
+        .then(response => {
+          setUser(response.data);
         })
-        .then((data) => {
-          console.log("🔄 Sessão restaurada:", data);
-          setUser(data);
-          localStorage.setItem("userId", data._id);
-        })
-        .catch((err) => {
-          console.warn("❌ Erro na sessão:", err.message);
+        .catch(() => {
           localStorage.removeItem("token");
-          localStorage.removeItem("userId");
-          setUser(null);
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
   }, []);
 
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Erro ao buscar dados do usuário");
-        return res.json();
-      })
-      .then((data) => {
-        console.log("🚀 Login efetuado:", data);
-        setUser(data);
-        localStorage.setItem("userId", data._id);
-      })
-      .catch((err) => {
-        console.error("❌ Falha ao logar:", err.message);
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-      });
+  const login = async (email, password) => {
+    try {
+      const response = await api.post("/api/auth/login", { email, password });
+      const { token, user } = response.data;
+      localStorage.setItem("token", token);
+      setUser(user);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Erro ao fazer login"
+      };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      const response = await api.post("/api/auth/register", userData);
+      const { token, user } = response.data;
+      localStorage.setItem("token", token);
+      setUser(user);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Erro ao registrar"
+      };
+    }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("userId");
     setUser(null);
-    console.log("👋 Logout efetuado.");
+  };
+
+  const checkUsername = async (username) => {
+    try {
+      await api.get(`/api/auth/check-username/${username}`);
+      return { available: true };
+    } catch (error) {
+      return { available: false };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, checkUsername }}>
       {loading ? (
         <Center h="100vh">
           <Box textAlign="center">

@@ -70,7 +70,20 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
     console.log("Navbar montado com sucesso");
-  }, []);
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  // Atualizar notificações a cada 30 segundos
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -389,11 +402,11 @@ export default function Navbar() {
                     _hover={{ bg: colorMode === "light" ? "gray.50" : "gray.700" }}
                     position="relative"
                   >
-                    <Flex justifyContent="space-between" alignItems="center">
+                    <Flex justify="space-between" align="center">
                       <HStack spacing={3}>
                         <Avatar
                           size="sm"
-                          name={notification.sender?.nome || "Usuário"}
+                          name={`${notification.sender?.nome} ${notification.sender?.sobrenome}` || "Usuário"}
                           src={notification.sender?.avatar}
                         />
                         <Box>

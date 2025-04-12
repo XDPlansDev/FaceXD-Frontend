@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@chakra-ui/react";
+import api from "@/services/api";
 
 const NotificationContext = createContext();
 
@@ -18,19 +19,12 @@ export function NotificationProvider({ children }) {
 
         try {
             setLoading(true);
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error("Erro ao buscar notificações");
-
-            const data = await response.json();
-            console.log("🔔 Notificações recebidas:", data);
-            setNotifications(data);
+            const response = await api.get("/api/notifications");
+            console.log("🔔 Notificações recebidas:", response.data);
+            setNotifications(response.data);
 
             // Contar notificações não lidas
-            const unreadCount = data.filter(notification => !notification.read).length;
+            const unreadCount = response.data.filter(notification => !notification.read).length;
             setUnreadCount(unreadCount);
         } catch (error) {
             console.error("❌ Erro ao buscar notificações:", error);
@@ -51,16 +45,9 @@ export function NotificationProvider({ children }) {
         if (!user) return;
 
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/unread`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error("Erro ao buscar contagem de notificações");
-
-            const data = await response.json();
-            console.log("🔔 Contagem de notificações não lidas:", data.count);
-            setUnreadCount(data.count);
+            const response = await api.get("/api/notifications/unread");
+            console.log("🔔 Contagem de notificações não lidas:", response.data.count);
+            setUnreadCount(response.data.count);
         } catch (error) {
             console.error("❌ Erro ao buscar contagem de notificações:", error);
         }
@@ -69,13 +56,7 @@ export function NotificationProvider({ children }) {
     // Função para marcar uma notificação como lida
     const markAsRead = async (notificationId) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${notificationId}/read`, {
-                method: "PUT",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error("Erro ao marcar notificação como lida");
+            await api.put(`/api/notifications/${notificationId}/read`);
 
             // Atualizar o estado local
             setNotifications(prevNotifications =>
@@ -105,13 +86,7 @@ export function NotificationProvider({ children }) {
     // Função para marcar todas as notificações como lidas
     const markAllAsRead = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/read-all`, {
-                method: "PUT",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error("Erro ao marcar todas as notificações como lidas");
+            await api.put("/api/notifications/read-all");
 
             // Atualizar o estado local
             setNotifications(prevNotifications =>
@@ -144,13 +119,7 @@ export function NotificationProvider({ children }) {
     // Função para excluir uma notificação
     const deleteNotification = async (notificationId) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications/${notificationId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error("Erro ao excluir notificação");
+            await api.delete(`/api/notifications/${notificationId}`);
 
             // Atualizar o estado local
             setNotifications(prevNotifications =>
@@ -188,6 +157,10 @@ export function NotificationProvider({ children }) {
         if (user) {
             console.log("🔄 Buscando notificações para o usuário:", user.username);
             fetchNotifications();
+
+            // Atualizar a cada 30 segundos
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
         } else {
             setNotifications([]);
             setUnreadCount(0);

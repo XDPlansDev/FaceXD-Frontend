@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
 import {
   Box,
   Button,
@@ -13,114 +12,134 @@ import {
   VStack,
   Heading,
   Text,
-  Alert,
-  AlertIcon,
-  Card,
-  CardBody,
-  Spinner,
-  useToast
+  Link,
+  useToast,
+  Container,
+  InputGroup,
+  InputRightElement,
+  IconButton
 } from "@chakra-ui/react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import Head from "next/head";
 
-export default function LoginPage() {
-  const [identifier, setIdentifier] = useState("");
+export default function Login() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const router = useRouter();
   const { login } = useAuth();
+  const router = useRouter();
   const toast = useToast();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: identifier, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        login(data.token);
-        console.log(`✅ Login com @${data.user.username}`);
+      const result = await login(email, password);
+      if (result.success) {
+        toast({
+          title: "Login realizado com sucesso!",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
         router.push("/feed");
       } else {
-        setError("Usuário ou senha inválidos.");
-        console.warn("⚠️ Credenciais inválidas");
+        toast({
+          title: "Erro ao fazer login",
+          description: result.error,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
-    } catch (err) {
-      setError("Erro ao conectar com o servidor.");
-      console.error("❌ Erro ao conectar:", err);
+    } catch (error) {
+      toast({
+        title: "Erro ao fazer login",
+        description: "Ocorreu um erro ao tentar fazer login",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box maxW="400px" mx="auto" p="2rem">
-      <Card>
-        <CardBody>
-          <VStack spacing={6} width="100%">
-            <Heading as="h3" size="lg" textAlign="center">
-              Entrar
-            </Heading>
-            <Text color="gray.500" textAlign="center">
-              Faça login com e-mail e senha.
+    <>
+      <Head>
+        <title>Login | Face XD</title>
+      </Head>
+
+      <Container maxW="container.sm" py={10}>
+        <VStack spacing={8} align="stretch">
+          <Box textAlign="center">
+            <Heading>Bem-vindo de volta!</Heading>
+            <Text color="gray.500" mt={2}>
+              Faça login para continuar
             </Text>
+          </Box>
 
-            {error && (
-              <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                {error}
-              </Alert>
-            )}
+          <Box
+            as="form"
+            onSubmit={handleSubmit}
+            p={8}
+            borderWidth={1}
+            borderRadius="lg"
+            boxShadow="lg"
+          >
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Email</FormLabel>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Seu email"
+                />
+              </FormControl>
 
-            <Box as="form" onSubmit={handleLogin} width="100%">
-              <VStack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel>E-mail ou Username</FormLabel>
+              <FormControl isRequired>
+                <FormLabel>Senha</FormLabel>
+                <InputGroup>
                   <Input
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    isDisabled={loading}
-                  />
-                </FormControl>
-                <FormControl isRequired>
-                  <FormLabel>Senha</FormLabel>
-                  <Input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    isDisabled={loading}
+                    placeholder="Sua senha"
                   />
-                </FormControl>
-                <Button
-                  type="submit"
-                  colorScheme="blue"
-                  width="100%"
-                  isLoading={loading}
-                  isDisabled={!identifier || !password}
-                >
-                  Entrar
-                </Button>
-              </VStack>
-            </Box>
+                  <InputRightElement>
+                    <IconButton
+                      icon={showPassword ? <FaEyeSlash /> : <FaEye />}
+                      variant="ghost"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
+                    />
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
 
-            <Text color="gray.500" textAlign="center">
-              Não tem uma conta?{' '}
-              <Link href="/auth/register" passHref>
-                <Button as="a" variant="link" size="sm" colorScheme="blue">
-                  Registrar
-                </Button>
-              </Link>
-            </Text>
-          </VStack>
-        </CardBody>
-      </Card>
-    </Box>
+              <Button
+                type="submit"
+                colorScheme="blue"
+                width="full"
+                isLoading={loading}
+              >
+                Entrar
+              </Button>
+
+              <Text>
+                Não tem uma conta?{" "}
+                <Link href="/auth/register" color="blue.500">
+                  Registre-se
+                </Link>
+              </Text>
+            </VStack>
+          </Box>
+        </VStack>
+      </Container>
+    </>
   );
 }
